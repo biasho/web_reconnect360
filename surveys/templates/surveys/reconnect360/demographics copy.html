@@ -1,0 +1,657 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block default_theme %}light{% endblock %}
+{% block title %}Báo cáo thống kê - Reconnect 360°{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="flex items-center text-xs text-[var(--color-text-sub)] mb-5">
+    <a class="hover:text-[var(--color-primary)] transition-colors" href="{% url 'pages:home' %}">Trang chủ</a>
+    <span class="mx-2">/</span>
+    <span class="text-[var(--color-text-main)] font-medium truncate">Báo cáo khảo sát Reconnect 360°</span>
+</nav>
+
+<div class="max-w-6xl mx-auto px-4 pb-16 space-y-6">
+
+    <!-- Tiêu đề trang & Bộ lọc -->
+    <div class="bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-6 flex flex-col gap-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="min-w-0 flex-1">
+                <h1 class="text-xl md:text-2xl font-bold text-[var(--color-text-main)] mb-1">
+                    Báo cáo Thống kê Khảo sát
+                </h1>
+                <p class="text-[var(--color-text-sub)] text-xs truncate max-w-3xl" title="{{ survey.title|default:'Khảo sát xu hướng thu mình và mức độ kết nối xã hội ở học sinh THCS - THPT' }}">
+                    {{ survey.title|default:"Khảo sát xu hướng thu mình và mức độ kết nối xã hội ở học sinh THCS - THPT" }}
+                </p>
+            </div>
+
+            <!-- Nhóm bộ lọc -->
+            <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                <!-- Bộ lọc Khối / Cấp học (Custom Dropdown) -->
+                <div class="relative shrink-0" id="grade-dropdown">
+                    <input type="hidden" id="grade-filter" value="">
+                    <button type="button" onclick="toggleDropdown('grade')"
+                        class="min-w-[170px] flex items-center justify-between gap-3 bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-main)] text-xs font-semibold rounded-2xl px-4 py-2.5 shadow-xs transition-all duration-200 hover:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none cursor-pointer">
+                        <span id="grade-selected-label" class="flex items-center gap-2.5 min-w-0">
+                            <span class="material-symbols-outlined text-base text-[var(--color-primary)] shrink-0">school</span>
+                            <span class="truncate">Tất cả Khối/Cấp</span>
+                        </span>
+                        <span id="grade-arrow" class="material-symbols-outlined text-base text-[var(--color-text-sub)] shrink-0 transition-transform duration-200">
+                            expand_more
+                        </span>
+                    </button>
+
+                    <div id="grade-menu"
+                        class="hidden opacity-0 scale-95 transition-all duration-200 ease-out absolute right-0 mt-2 w-[220px] bg-[var(--color-card-bg)] border border-[var(--color-border)] rounded-2xl shadow-xl p-2 z-50 ring-1 ring-black/5 space-y-1 max-h-80 overflow-y-auto">
+                        <div data-value="" onclick="selectGrade('', 'Tất cả Khối/Cấp')"
+                            class="grade-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-semibold">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">school</span><span class="truncate">Tất cả Khối/Cấp</span></div>
+                            <span class="material-symbols-outlined text-sm check-icon text-[var(--color-primary)] shrink-0">check</span>
+                        </div>
+                        <div class="px-3.5 py-1 text-[10px] font-bold text-[var(--color-text-sub)] uppercase tracking-wider">Cấp THCS</div>
+                        <div data-value="thcs" onclick="selectGrade('thcs', 'Tất cả THCS')"
+                            class="grade-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">menu_book</span><span class="truncate">Tất cả THCS</span></div>
+                        </div>
+                        <div data-value="6" onclick="selectGrade('6', 'Khối 6')"
+                            class="grade-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">looks_one</span><span class="truncate">Khối 6</span></div>
+                        </div>
+                        <div data-value="7" onclick="selectGrade('7', 'Khối 7')"
+                            class="grade-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">looks_two</span><span class="truncate">Khối 7</span></div>
+                        </div>
+                        <div data-value="8" onclick="selectGrade('8', 'Khối 8')"
+                            class="grade-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">looks_3</span><span class="truncate">Khối 8</span></div>
+                        </div>
+                        <div data-value="9" onclick="selectGrade('9', 'Khối 9')"
+                            class="grade-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">looks_4</span><span class="truncate">Khối 9</span></div>
+                        </div>
+                        <div class="px-3.5 py-1 text-[10px] font-bold text-[var(--color-text-sub)] uppercase tracking-wider">Cấp THPT</div>
+                        <div data-value="thpt" onclick="selectGrade('thpt', 'Tất cả THPT')"
+                            class="grade-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">menu_book</span><span class="truncate">Tất cả THPT</span></div>
+                        </div>
+                        <div data-value="10" onclick="selectGrade('10', 'Khối 10')"
+                            class="grade-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">filter_1</span><span class="truncate">Khối 10</span></div>
+                        </div>
+                        <div data-value="11" onclick="selectGrade('11', 'Khối 11')"
+                            class="grade-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">filter_2</span><span class="truncate">Khối 11</span></div>
+                        </div>
+                        <div data-value="12" onclick="selectGrade('12', 'Khối 12')"
+                            class="grade-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">filter_3</span><span class="truncate">Khối 12</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bộ lọc Giới tính (Custom Dropdown) -->
+                <div class="relative shrink-0" id="gender-dropdown">
+                    <input type="hidden" id="gender-filter" value="">
+                    <button type="button" onclick="toggleDropdown('gender')"
+                        class="min-w-[160px] flex items-center justify-between gap-3 bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-main)] text-xs font-semibold rounded-2xl px-4 py-2.5 shadow-xs transition-all duration-200 hover:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none cursor-pointer">
+                        <span id="gender-selected-label" class="flex items-center gap-2.5 min-w-0">
+                            <span class="material-symbols-outlined text-base text-[var(--color-primary)] shrink-0">wc</span>
+                            <span class="truncate">Tất cả Giới tính</span>
+                        </span>
+                        <span id="gender-arrow" class="material-symbols-outlined text-base text-[var(--color-text-sub)] shrink-0 transition-transform duration-200">
+                            expand_more
+                        </span>
+                    </button>
+
+                    <div id="gender-menu"
+                        class="hidden opacity-0 scale-95 transition-all duration-200 ease-out absolute right-0 mt-2 w-[200px] bg-[var(--color-card-bg)] border border-[var(--color-border)] rounded-2xl shadow-xl p-2 z-50 ring-1 ring-black/5 space-y-1">
+                        <div data-value="" onclick="selectGender('', 'Tất cả Giới tính')"
+                            class="gender-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-semibold">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">wc</span><span class="truncate">Tất cả Giới tính</span></div>
+                            <span class="material-symbols-outlined text-sm check-icon text-[var(--color-primary)] shrink-0">check</span>
+                        </div>
+                        <div data-value="male" onclick="selectGender('male', 'Nam')"
+                            class="gender-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">male</span><span class="truncate">Nam</span></div>
+                        </div>
+                        <div data-value="female" onclick="selectGender('female', 'Nữ')"
+                            class="gender-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">female</span><span class="truncate">Nữ</span></div>
+                        </div>
+                        <div data-value="other" onclick="selectGender('other', 'Khác')"
+                            class="gender-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">transgender</span><span class="truncate">Khác</span></div>
+                        </div>
+                        <div data-value="no_answer" onclick="selectGender('no_answer', 'Không muốn trả lời')"
+                            class="gender-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">visibility_off</span><span class="truncate">Không muốn trả lời</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bộ lọc thời gian -->
+                <div class="relative shrink-0" id="time-dropdown">
+                    <input type="hidden" id="time-filter" value="current_year">
+                    <button type="button" onclick="toggleDropdown('time')"
+                        class="min-w-[190px] flex items-center justify-between gap-3 bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-main)] text-xs font-semibold rounded-2xl px-4 py-2.5 shadow-xs transition-all duration-200 hover:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none cursor-pointer">
+                        <span id="time-selected-label" class="flex items-center gap-2.5 min-w-0">
+                            <span class="material-symbols-outlined text-base text-[var(--color-primary)] shrink-0">calendar_today</span>
+                            <span class="truncate">Năm hiện tại (2026)</span>
+                        </span>
+                        <span id="time-arrow" class="material-symbols-outlined text-base text-[var(--color-text-sub)] shrink-0 transition-transform duration-200">
+                            expand_more
+                        </span>
+                    </button>
+
+                    <div id="time-menu"
+                        class="hidden opacity-0 scale-95 transition-all duration-200 ease-out absolute right-0 mt-2 w-[240px] bg-[var(--color-card-bg)] border border-[var(--color-border)] rounded-2xl shadow-xl p-2 z-50 ring-1 ring-black/5 space-y-1 max-h-80 overflow-y-auto">
+                        <div data-value="today" onclick="selectTime('today', 'Hôm nay', 'today')"
+                            class="time-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">today</span><span class="truncate">Hôm nay</span></div>
+                        </div>
+                        <div data-value="this_week" onclick="selectTime('this_week', 'Tuần này', 'date_range')"
+                            class="time-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">date_range</span><span class="truncate">Tuần này</span></div>
+                        </div>
+                        <div data-value="1_month" onclick="selectTime('1_month', '1 tháng qua', 'calendar_month')"
+                            class="time-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">calendar_month</span><span class="truncate">1 tháng qua</span></div>
+                        </div>
+                        <div data-value="current_year" onclick="selectTime('current_year', 'Năm hiện tại (2026)', 'calendar_today')"
+                            class="time-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-semibold">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">calendar_today</span><span class="truncate">Năm hiện tại (2026)</span></div>
+                            <span class="material-symbols-outlined text-sm check-icon text-[var(--color-primary)] shrink-0">check</span>
+                        </div>
+                        <div data-value="custom_year" onclick="selectTime('custom_year', 'Tùy chọn khoảng năm', 'date_range')"
+                            class="time-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">date_range</span><span class="truncate">Tùy chọn khoảng năm</span></div>
+                        </div>
+                        <div data-value="custom_date" onclick="selectTime('custom_date', 'Tùy chọn từ ngày - đến ngày', 'event_upcoming')"
+                            class="time-item flex items-center justify-between gap-3 px-3.5 py-2 text-xs text-[var(--color-text-main)] rounded-xl cursor-pointer hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)] transition-all">
+                            <div class="flex items-center gap-2.5 min-w-0"><span class="material-symbols-outlined text-base shrink-0">event_upcoming</span><span class="truncate">Tùy chọn ngày - ngày</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Khoảng năm tùy chọn -->
+        <div id="custom-year-range" class="hidden justify-end items-center gap-2 w-full pt-3 border-t border-[var(--color-border)] transition-all duration-300">
+            <input type="number" id="year-from" placeholder="Từ năm (VD: 2025)" min="2000" max="2100"
+                class="bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-main)] text-xs font-semibold rounded-2xl px-3.5 py-2 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none w-44">
+            <span class="text-[var(--color-text-sub)] font-bold text-xs">đến</span>
+            <input type="number" id="year-to" placeholder="Đến năm (VD: 2026)" min="2000" max="2100"
+                class="bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-main)] text-xs font-semibold rounded-2xl px-3.5 py-2 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none w-44">
+            <button onclick="triggerFilterFetch()" title="Tìm kiếm"
+                class="size-8 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-xs shrink-0 cursor-pointer">
+                <span class="material-symbols-outlined text-base">search</span>
+            </button>
+        </div>
+
+        <!-- Khoảng ngày tùy chọn -->
+       <div id="custom-date-range" class="hidden justify-end items-center gap-2 w-full pt-3 border-t border-[var(--color-border)] transition-all duration-300">
+    
+    <!-- Từ ngày -->
+    <div class="relative flex items-center">
+        <input type="date" id="date-from" onclick="this.showPicker()"
+            class="w-36 bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-main)] text-xs font-semibold rounded-2xl pl-3 pr-8 py-2 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-datetime-edit-fields-wrapper]:p-0">
+        <span class="material-symbols-outlined text-sm text-[var(--color-text-sub)] absolute right-2.5 pointer-events-none select-none">calendar_today</span>
+    </div>
+
+    <span class="text-[var(--color-text-sub)] font-bold text-xs">đến</span>
+
+    <!-- Đến ngày -->
+    <div class="relative flex items-center">
+        <input type="date" id="date-to" onclick="this.showPicker()"
+            class="w-40 bg-[var(--color-background)] border border-[var(--color-border)] text-[var(--color-text-main)] text-xs font-semibold rounded-2xl pl-3 pr-8 py-2 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-datetime-edit-fields-wrapper]:p-0">
+        <span class="material-symbols-outlined text-sm text-[var(--color-text-sub)] absolute right-2.5 pointer-events-none select-none">calendar_today</span>
+    </div>
+
+    <!-- Nút Tìm kiếm -->
+    <button onclick="triggerFilterFetch()" title="Tìm kiếm"
+        class="size-8 rounded-xl bg-[var(--color-primary)] text-white flex items-center justify-center hover:opacity-90 active:scale-95 transition-all shadow-xs shrink-0 cursor-pointer">
+        <span class="material-symbols-outlined text-base">search</span>
+    </button>
+
+</div>
+    </div>
+
+    <!-- Thẻ Tổng quan -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="hidden bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-5 flex items-center gap-4">
+            <div class="size-12 rounded-2xl bg-green-500/10 text-green-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-2xl">group</span>
+            </div>
+            <div>
+                <p class="text-xs text-[var(--color-text-sub)] font-medium">Số người tham gia</p>
+                <h3 id="total-participants" class="text-xl font-bold text-[var(--color-text-main)]">0</h3>
+            </div>
+        </div>
+        
+        <div class="bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-5 flex items-center gap-4">
+            <div class="size-12 rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-2xl">assignment</span>
+            </div>
+            <div>
+                <p class="text-xs text-[var(--color-text-sub)] font-medium">Tổng số lượt khảo sát</p>
+                <h3 id="total-surveys" class="text-xl font-bold text-[var(--color-text-main)]">0</h3>
+            </div>
+        </div>
+
+        <div class="bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-5 flex items-center gap-4">
+            <div class="size-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-2xl">trending_up</span>
+            </div>
+            <div>
+                <p class="text-xs text-[var(--color-text-sub)] font-medium">Tỷ lệ hoàn thành</p>
+                <h3 id="completion-rate" class="text-xl font-bold text-[var(--color-text-main)]">0%</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- PHẦN 1: BÁO CÁO XU HƯỚNG THU MÌNH (GROUP ALL_ABC) -->
+    <div class="space-y-2">
+        <div class="flex items-center gap-2 font-bold text-sm text-[var(--color-text-main)]">
+            <span class="material-symbols-outlined text-[var(--color-primary)] text-base">psychology</span>
+            <span>1. Báo cáo Xu hướng Thu mình (Nhóm A + B + C)</span>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+            <div class="lg:col-span-4 bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-4 flex flex-col items-center justify-between">
+                <h2 class="text-xs font-bold text-[var(--color-text-main)] w-full mb-2 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[var(--color-primary)] text-base">pie_chart</span>
+                    Biểu đồ tỷ lệ - Xu hướng Thu mình
+                </h2>
+                <div class="relative w-full max-w-[170px] my-auto aspect-square flex items-center justify-center">
+                    <canvas id="chartABC"></canvas>
+                </div>
+                <p class="text-[10px] text-center text-[var(--color-text-sub)] mt-2">
+                    Phân bổ học sinh theo các ngưỡng điểm xu hướng thu mình.
+                </p>
+            </div>
+
+            <div class="lg:col-span-8 bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-4 flex flex-col justify-between">
+                <h2 class="text-xs font-bold text-[var(--color-text-main)] mb-2 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[var(--color-primary)] text-base">table_chart</span>
+                    Chi tiết theo Ngưỡng kết quả (ALL_ABC)
+                </h2>
+                <div class="overflow-x-auto my-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-[var(--color-border)] text-[10px] text-[var(--color-text-sub)] uppercase">
+                                <th class="py-1.5 px-2.5">Ngưỡng kết quả</th>
+                                <th class="py-1.5 px-2.5 text-center">Thang điểm</th>
+                                <th class="py-1.5 px-2.5 text-center">Số lượng</th>
+                                <th class="py-1.5 px-2.5 text-right">Tỷ lệ (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-abc-body" class="text-xs text-[var(--color-text-main)] divide-y divide-[var(--color-border)]"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PHẦN 2: BÁO CÁO MỨC ĐỘ KẾT NỐI XÃ HỘI (GROUP D) -->
+    <div class="space-y-2 pt-2">
+        <div class="flex items-center gap-2 font-bold text-sm text-[var(--color-text-main)]">
+            <span class="material-symbols-outlined text-[var(--color-primary)] text-base">hub</span>
+            <span>2. Báo cáo Mức độ Kết nối Xã hội (Nhóm D)</span>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+            <div class="lg:col-span-4 bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-4 flex flex-col items-center justify-between">
+                <h2 class="text-xs font-bold text-[var(--color-text-main)] w-full mb-2 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[var(--color-primary)] text-base">pie_chart</span>
+                    Biểu đồ tỷ lệ - Kết nối Xã hội
+                </h2>
+                <div class="relative w-full max-w-[170px] my-auto aspect-square flex items-center justify-center">
+                    <canvas id="chartD"></canvas>
+                </div>
+                <p class="text-[10px] text-center text-[var(--color-text-sub)] mt-2">
+                    Phân bổ học sinh theo các ngưỡng mức độ kết nối xã hội.
+                </p>
+            </div>
+
+            <div class="lg:col-span-8 bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-4 flex flex-col justify-between">
+                <h2 class="text-xs font-bold text-[var(--color-text-main)] mb-2 flex items-center gap-1.5">
+                    <span class="material-symbols-outlined text-[var(--color-primary)] text-base">table_chart</span>
+                    Chi tiết theo Ngưỡng kết quả (D)
+                </h2>
+                <div class="overflow-x-auto my-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-[var(--color-border)] text-[10px] text-[var(--color-text-sub)] uppercase">
+                                <th class="py-1.5 px-2.5">Ngưỡng kết quả</th>
+                                <th class="py-1.5 px-2.5 text-center">Thang điểm</th>
+                                <th class="py-1.5 px-2.5 text-center">Số lượng</th>
+                                <th class="py-1.5 px-2.5 text-right">Tỷ lệ (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-d-body" class="text-xs text-[var(--color-text-main)] divide-y divide-[var(--color-border)]"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    let chartABCInstance = null;
+    let chartDInstance = null;
+
+    const chartColors = [
+        '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
+    ];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        triggerFilterFetch();
+
+        document.addEventListener('click', (e) => {
+            ['grade', 'gender', 'time'].forEach(type => {
+                const dropdown = document.getElementById(`${type}-dropdown`);
+                if (dropdown && !dropdown.contains(e.target)) {
+                    closeDropdown(type);
+                }
+            });
+        });
+    });
+
+    function toggleDropdown(type) {
+        // Đóng các dropdown khác trước
+        ['grade', 'gender', 'time'].forEach(t => {
+            if (t !== type) closeDropdown(t);
+        });
+
+        const menu = document.getElementById(`${type}-menu`);
+        const arrow = document.getElementById(`${type}-arrow`);
+
+        if (menu.classList.contains('hidden')) {
+            menu.classList.remove('hidden');
+            setTimeout(() => {
+                menu.classList.remove('opacity-0', 'scale-95');
+                menu.classList.add('opacity-100', 'scale-100');
+                arrow.classList.add('rotate-180');
+            }, 10);
+        } else {
+            closeDropdown(type);
+        }
+    }
+
+    function closeDropdown(type) {
+        const menu = document.getElementById(`${type}-menu`);
+        const arrow = document.getElementById(`${type}-arrow`);
+        if (!menu || menu.classList.contains('hidden')) return;
+
+        menu.classList.remove('opacity-100', 'scale-100');
+        menu.classList.add('opacity-0', 'scale-95');
+        arrow.classList.remove('rotate-180');
+
+        setTimeout(() => {
+            menu.classList.add('hidden');
+        }, 200);
+    }
+
+    function selectGrade(value, label) {
+        document.getElementById('grade-filter').value = value;
+        document.getElementById('grade-selected-label').innerHTML = `
+            <span class="material-symbols-outlined text-base text-[var(--color-primary)] shrink-0">school</span>
+            <span class="truncate">${label}</span>
+        `;
+
+        document.querySelectorAll('.grade-item').forEach(item => {
+            item.classList.remove('bg-[var(--color-primary)]/10', 'text-[var(--color-primary)]', 'font-semibold');
+            const check = item.querySelector('.check-icon');
+            if (check) check.remove();
+        });
+
+        const selectedItem = document.querySelector(`.grade-item[data-value="${value}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('bg-[var(--color-primary)]/10', 'text-[var(--color-primary)]', 'font-semibold');
+            selectedItem.insertAdjacentHTML('beforeend', '<span class="material-symbols-outlined text-sm check-icon text-[var(--color-primary)] shrink-0">check</span>');
+        }
+
+        closeDropdown('grade');
+        triggerFilterFetch();
+    }
+
+    function selectGender(value, label) {
+        document.getElementById('gender-filter').value = value;
+        document.getElementById('gender-selected-label').innerHTML = `
+            <span class="material-symbols-outlined text-base text-[var(--color-primary)] shrink-0">wc</span>
+            <span class="truncate">${label}</span>
+        `;
+
+        document.querySelectorAll('.gender-item').forEach(item => {
+            item.classList.remove('bg-[var(--color-primary)]/10', 'text-[var(--color-primary)]', 'font-semibold');
+            const check = item.querySelector('.check-icon');
+            if (check) check.remove();
+        });
+
+        const selectedItem = document.querySelector(`.gender-item[data-value="${value}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('bg-[var(--color-primary)]/10', 'text-[var(--color-primary)]', 'font-semibold');
+            selectedItem.insertAdjacentHTML('beforeend', '<span class="material-symbols-outlined text-sm check-icon text-[var(--color-primary)] shrink-0">check</span>');
+        }
+
+        closeDropdown('gender');
+        triggerFilterFetch();
+    }
+
+    function selectTime(value, label, icon) {
+        document.getElementById('time-filter').value = value;
+        document.getElementById('time-selected-label').innerHTML = `
+            <span class="material-symbols-outlined text-base text-[var(--color-primary)] shrink-0">${icon}</span>
+            <span class="truncate">${label}</span>
+        `;
+
+        document.querySelectorAll('.time-item').forEach(item => {
+            item.classList.remove('bg-[var(--color-primary)]/10', 'text-[var(--color-primary)]', 'font-semibold');
+            const check = item.querySelector('.check-icon');
+            if (check) check.remove();
+        });
+
+        const selectedItem = document.querySelector(`.time-item[data-value="${value}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('bg-[var(--color-primary)]/10', 'text-[var(--color-primary)]', 'font-semibold');
+            selectedItem.insertAdjacentHTML('beforeend', '<span class="material-symbols-outlined text-sm check-icon text-[var(--color-primary)] shrink-0">check</span>');
+        }
+
+        closeDropdown('time');
+
+        const customYearDiv = document.getElementById('custom-year-range');
+        const customDateDiv = document.getElementById('custom-date-range');
+
+        if (customYearDiv) {
+            customYearDiv.classList.remove('flex');
+            customYearDiv.classList.add('hidden');
+        }
+        if (customDateDiv) {
+            customDateDiv.classList.remove('flex');
+            customDateDiv.classList.add('hidden');
+        }
+
+        if (value === 'custom_year') {
+            if (customYearDiv) {
+                customYearDiv.classList.remove('hidden');
+                customYearDiv.classList.add('flex');
+            }
+        } else if (value === 'custom_date') {
+            if (customDateDiv) {
+                customDateDiv.classList.remove('hidden');
+                customDateDiv.classList.add('flex');
+            }
+        } else {
+            triggerFilterFetch();
+        }
+    }
+
+    function triggerFilterFetch() {
+        const grade = document.getElementById('grade-filter')?.value;
+        const gender = document.getElementById('gender-filter')?.value;
+        const timeFilter = document.getElementById('time-filter')?.value;
+
+        const params = { time_filter: timeFilter };
+        if (grade) params.grade = grade;
+        if (gender) params.gender = gender;
+
+        if (timeFilter === 'custom_year') {
+            const yearFrom = document.getElementById('year-from')?.value;
+            const yearTo = document.getElementById('year-to')?.value;
+
+            if (yearFrom && yearTo && Number(yearFrom) > Number(yearTo)) {
+                alert('Năm bắt đầu không được lớn hơn năm kết thúc!');
+                return;
+            }
+            if (yearFrom) params.year_from = yearFrom;
+            if (yearTo) params.year_to = yearTo;
+        } else if (timeFilter === 'custom_date') {
+            const dateFrom = document.getElementById('date-from')?.value;
+            const dateTo = document.getElementById('date-to')?.value;
+
+            if (dateFrom && dateTo && new Date(dateFrom) > new Date(dateTo)) {
+                alert('Ngày bắt đầu không được lớn hơn ngày kết thúc!');
+                return;
+            }
+            if (dateFrom) params.date_from = dateFrom;
+            if (dateTo) params.date_to = dateTo;
+        }
+
+        fetchReportData(params);
+    }
+
+    function fetchReportData(params) {
+        const queryParams = new URLSearchParams(params).toString();
+        const apiUrl = `${window.location.pathname}?${queryParams}`;
+
+        fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Không thể lấy dữ liệu từ hệ thống');
+                return response.json();
+            })
+            .then(data => {
+                renderReportUI(data);
+            })
+            .catch(error => {
+                console.error('Fetch report error:', error);
+            });
+    }
+
+    function renderReportUI(data) {
+        const totalSurveys = data.total_surveys ?? 0;
+        const totalParticipants = data.total_participants ?? 0;
+        const completionRate = data.completion_rate ?? 100;
+
+        document.getElementById('total-surveys').innerText = Number(totalSurveys).toLocaleString();
+        document.getElementById('total-participants').innerText = Number(totalParticipants).toLocaleString();
+        document.getElementById('completion-rate').innerText = completionRate + '%';
+
+        if (data.group_abc) {
+            chartABCInstance = renderGroupSection(
+                'table-abc-body',
+                'chartABC',
+                data.group_abc,
+                chartABCInstance
+            );
+        }
+
+        if (data.group_d) {
+            chartDInstance = renderGroupSection(
+                'table-d-body',
+                'chartD',
+                data.group_d,
+                chartDInstance
+            );
+        }
+    }
+
+    function renderGroupSection(tableBodyId, canvasId, groupData, chartInstance) {
+        const tbody = document.getElementById(tableBodyId);
+        if (!tbody) return chartInstance;
+
+        tbody.innerHTML = '';
+        const tableData = groupData.table_data || [];
+
+        const labels = groupData.chart_data?.labels || [];
+        const series = groupData.chart_data?.series || [];
+
+        // Kiểm tra xem tổng số lượng có bằng 0 hoặc rỗng không
+        const totalCount = series.reduce((a, b) => a + b, 0);
+
+        if (tableData.length === 0 || totalCount === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="py-4 text-center text-[var(--color-text-sub)]">Không có dữ liệu phù hợp.</td></tr>`;
+        } else {
+            tableData.forEach((item, index) => {
+                const color = chartColors[index % chartColors.length];
+                const row = `
+                    <tr class="hover:bg-[var(--color-background)] transition-colors">
+                        <td class="py-1.5 px-2.5 font-medium flex items-center gap-2">
+                            <span class="size-2.5 rounded-full shrink-0" style="background-color: ${color}"></span>
+                            ${item.title || item.name}
+                        </td>
+                        <td class="py-1.5 px-2.5 text-center text-[var(--color-text-sub)]">${item.score_range}</td>
+                        <td class="py-1.5 px-2.5 text-center font-bold">${Number(item.count || 0).toLocaleString()}</td>
+                        <td class="py-1.5 px-2.5 text-right font-semibold text-[var(--color-primary)]">${item.percentage}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+        }
+
+        const canvasElement = document.getElementById(canvasId);
+        if (!canvasElement) return chartInstance;
+
+        const ctx = canvasElement.getContext('2d');
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
+
+        const cardBgColor = getComputedStyle(document.documentElement).getPropertyValue('--color-card-bg').trim() || '#ffffff';
+
+        // Cấu hình dữ liệu biểu đồ khi không có dữ liệu (totalCount === 0)
+        const chartConfigData = totalCount === 0 ? {
+            labels: ['Chưa có dữ liệu'],
+            datasets: [{
+                data: [1],
+                backgroundColor: ['#e5e7eb'], // Màu xám nhạt khi trống
+                borderWidth: 2,
+                borderColor: cardBgColor
+            }]
+        } : {
+            labels: labels,
+            datasets: [{
+                data: series,
+                backgroundColor: chartColors.slice(0, series.length),
+                borderWidth: 2,
+                borderColor: cardBgColor
+            }]
+        };
+
+        return new Chart(ctx, {
+            type: 'doughnut',
+            data: chartConfigData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: totalCount > 0
+                    }
+                },
+                cutout: '65%'
+            }
+        });
+    }
+</script>
+{% endblock %}

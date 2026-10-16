@@ -4,7 +4,7 @@ import threading
 from datetime import timedelta
 from django.contrib import messages
 from django.db import close_old_connections, transaction
-from django.db.models import F, Prefetch, Q
+from django.db.models import F, Prefetch, Q,Avg, Count,OuterRef,Subquery
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -12,7 +12,7 @@ from django.views.decorators.http import require_POST
 
 from core.models import Lead, Source
 from questions.models import Option, Question
-import logging
+import logging,random
 
 logger = logging.getLogger(__name__)
 from .models import (
@@ -45,9 +45,14 @@ def _get_survey_by_slug(slug):
 def survey_list(request):
     """Danh sách các khảo sát đang hoạt động."""
     surveys = Survey.objects.filter(is_active=True)
-    return render(request, 'surveys/survey_list.html', {'surveys': surveys})
-
-
+    return render(request, 'pages/index.html')
+def survey_document(request):
+    context = {
+        'danh_sach_lop': ['Lớp 6', 'Lớp 7', 'Lớp 8', 'Lớp 9', 'Lớp 10', 'Lớp 11', 'Lớp 12'],
+        'gioi_tinh': ['Nam', 'Nữ', 'Khác', 'Không muốn trả lời'],
+        'mxh_thoigian': ['Dưới 1h', 'Từ 1-2h', 'Từ 2-4h', 'Từ 4-6h', 'Trên 6h'],
+    }
+    return render(request, 'surveys/reconnect360/survey_document.html', context)
 def survey_detail(request, slug):
     """Chi tiết một khảo sát đơn."""
     survey = get_object_or_404(Survey, slug=slug, is_active=True)
@@ -847,42 +852,73 @@ def combo_detail(request, slug):
     return render(request, 'surveys/combo/detail.html', context)
 
 #
+
 def survey_statistics_view(request, survey_id):
     # Lấy thông tin khảo sát
     survey = get_object_or_404(Survey, id=survey_id)
     questions = (
-            survey.questions
-            .select_related('group')
-            .prefetch_related('options')
-            .all()
-            .order_by('group__code', 'id')
-        )
+        survey.questions
+        .select_related('group')
+        .prefetch_related('options')
+        .all()
+        .order_by('group__code', 'id')
+    )
     
-    # Lấy tham số sắp xếp từ query string (ví dụ: ?sort=desc hoặc ?sort=asc)
-    # Mặc định sắp xếp giảm dần (nhiều người chọn nhất lên đầu)
-    sort_order = request.GET.get('sort', 'desc') 
+    # Lấy các tham số lọc & sắp xếp từ Query String
+    filter_type = request.GET.get('filter', '')
+    start_date_str = request.GET.get('start_date', '')
+    end_date_str = request.GET.get('end_date', '')
+    sort_order = request.GET.get('sort', 'desc')
     
+    # Khởi tạo queryset cơ bản cho Answer
+    answers_qs = Answer.objects.filter(question__in=questions)
+    
+    # Xử lý lọc theo loại bộ lọc
+    if filter_type == 'today':
+        now = timezone.now()
+        start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+        answers_qs = answers_qs.filter(submission__submitted_at__range=(start_of_day, end_of_day))
+    else:
+        # Xử lý start_date nếu có
+        if start_date_str:
+            try:
+                dt_start = datetime.datetime.strptime(start_date_str, '%Y-%m-%dT%H:%M')
+                if timezone.is_naive(dt_start):
+                    dt_start = timezone.make_aware(dt_start)
+                answers_qs = answers_qs.filter(submission__submitted_at__gte=dt_start)
+            except ValueError:
+                pass
+                
+        # Xử lý end_date nếu có
+        if end_date_str:
+            try:
+                dt_end = datetime.datetime.strptime(end_date_str, '%Y-%m-%dT%H:%M')
+                if timezone.is_naive(dt_end):
+                    dt_end = timezone.make_aware(dt_end)
+                answers_qs = answers_qs.filter(submission__submitted_at__lte=dt_end)
+            except ValueError:
+                pass
+
     stats_data = []
     for q in questions:
-        answers = Answer.objects.filter(question=q)
+        # Lọc danh sách câu trả lời thuộc câu hỏi hiện tại từ queryset đã áp dụng filter thời gian
+        q_answers = answers_qs.filter(question=q)
         
         choice_counts = {}
         text_answers = [] # Lưu các câu trả lời dạng chữ (tự luận)
         
-        for ans in answers:
-            # Kiểm tra nếu câu hỏi là dạng tự luận hoặc model answer lưu text
-            # Bạn có thể điều chỉnh tên thuộc tính sao cho khớp với model thực tế của bạn
+        for ans in q_answers:
             if hasattr(ans, 'text_answer') and ans.text_answer:
                 text_answers.append(ans.text_answer)
             elif hasattr(ans, 'selected_option') and ans.selected_option:
                 choice_text = ans.selected_option
                 choice_counts[choice_text] = choice_counts.get(choice_text, 0) + 1
             else:
-                # Trường hợp lưu trực tiếp nội dung vào trường text chung
                 val = getattr(ans, 'answer_text', None) or str(ans)
                 text_answers.append(val)
         
-        # Sắp xếp các lựa chọn theo số lượng người chọn (tăng dần hoặc giảm dần)
+        # Sắp xếp các lựa chọn trắc nghiệm theo số lượng chọn
         sorted_choices = sorted(
             choice_counts.items(), 
             key=lambda item: item[1], 
@@ -891,15 +927,591 @@ def survey_statistics_view(request, survey_id):
         
         stats_data.append({
             'question': q,
-            'sorted_choices': sorted_choices, # Dùng list các tuple (choice, count) đã sort
-            'text_answers': text_answers,       # Danh sách câu trả lời tự luận
-            'total_answers': answers.count()
+            'sorted_choices': sorted_choices,
+            'text_answers': text_answers,
+            'total_answers': q_answers.count()
         })
 
     context = {
         'survey': survey,
         'stats_data': stats_data,
         'current_sort': sort_order,
+        'filter_type': filter_type,
+        'start_date': start_date_str,
+        'end_date': end_date_str,
     }
     return render(request, 'surveys/single/survey_statistics.html', context)
+#
+def cross_analysis_report_view(request, slug="khao-sat-xu-huong-thu-minh-va-muc-do-ket-noi-xa-hoi-o-hoc-sinh-thcs-thpt-1"):
+    """View hiển thị báo cáo Phân tích Tương quan Chéo chuyên sâu có tích hợp bộ lọc thời gian."""
+    survey = _get_survey_by_slug(slug) if slug else Survey.objects.filter(is_active=True).first()
+    
+    survey_submissions = SurveySubmission.objects.filter(survey=survey).select_related('submission')
+    date_field = "submission__submitted_at"
+
+    # Lấy các tham số lọc từ request GET
+    filter_type = request.GET.get('filter')
+    start_date_str = request.GET.get('start_date')
+    end_date_str = request.GET.get('end_date')
+
+    # Xử lý logic lọc thời gian linh hoạt
+    current_tz = timezone.get_current_timezone()
+    time_label = ""
+
+    # Hàm hỗ trợ format datetime sang định dạng HH:MM ngày DD/MM/YYYY
+    def format_dt_display(dt):
+        return dt.strftime("%H:%M ngày %d/%m/%Y")
+
+    if filter_type == 'today':
+        # Lọc trong ngày hôm nay
+        today = timezone.localdate()
+        start_of_day = timezone.make_aware(datetime.datetime.combine(today, datetime.time.min), current_tz)
+        end_of_day = timezone.make_aware(datetime.datetime.combine(today, datetime.time.max), current_tz)
+        survey_submissions = survey_submissions.filter(**{f"{date_field}__gte": start_of_day, f"{date_field}__lte": end_of_day})
+        time_label = "trong ngày hôm nay"
+    
+    elif filter_type == 'before' and end_date_str:
+        # Lọc trước mốc thời gian (sử dụng giá trị từ ô end_date truyền lên)
+        try:
+            naive_dt = datetime.datetime.fromisoformat(end_date_str)
+            aware_dt = timezone.make_aware(naive_dt, current_tz)
+            survey_submissions = survey_submissions.filter(**{f"{date_field}__lte": aware_dt})
+            time_label = f"Tính đến {format_dt_display(naive_dt)}"
+        except ValueError:
+            pass
+
+    elif filter_type == 'after' and start_date_str:
+        # Lọc sau mốc thời gian (sử dụng giá trị từ ô start_date truyền lên)
+        try:
+            naive_dt = datetime.datetime.fromisoformat(start_date_str)
+            aware_dt = timezone.make_aware(naive_dt, current_tz)
+            survey_submissions = survey_submissions.filter(**{f"{date_field}__gte": aware_dt})
+            time_label = f"Từ {format_dt_display(naive_dt)} trở đi"
+        except ValueError:
+            pass
+
+    else:
+        # Mặc định hoặc lọc theo khoảng thời gian thông thường (Từ ... Đến ...)
+        start_dt_obj = None
+        end_dt_obj = None
+
+        if start_date_str:
+            try:
+                naive_start = datetime.datetime.fromisoformat(start_date_str)
+                aware_start = timezone.make_aware(naive_start, current_tz)
+                survey_submissions = survey_submissions.filter(**{f"{date_field}__gte": aware_start})
+                start_dt_obj = naive_start
+            except ValueError:
+                pass
+
+        if end_date_str:
+            try:
+                naive_end = datetime.datetime.fromisoformat(end_date_str)
+                aware_end = timezone.make_aware(naive_end, current_tz)
+                survey_submissions = survey_submissions.filter(**{f"{date_field}__lte": aware_end})
+                end_dt_obj = naive_end
+            except ValueError:
+                pass
+
+        # Tạo chuỗi nhãn thời gian hiển thị theo kết quả khoảng thời gian lọc
+        if start_dt_obj and end_dt_obj:
+            time_label = f"Từ {format_dt_display(start_dt_obj)} đến {format_dt_display(end_dt_obj)}"
+        elif start_dt_obj:
+            time_label = f"Từ {format_dt_display(start_dt_obj)} trở đi"
+        elif end_dt_obj:
+            time_label = f"Tính đến {format_dt_display(end_dt_obj)}"
+
+        # Nếu hoàn toàn không có tham số lọc nào, áp dụng mốc mặc định
+        if not filter_type and not start_date_str and not end_date_str:
+            naive_deadline = datetime.datetime(2026, 8, 27, 22, 0, 0)
+            target_deadline = timezone.make_aware(naive_deadline, current_tz)
+            survey_submissions = survey_submissions.filter(**{f"{date_field}__lte": target_deadline})
+            time_label = f"Tính đến {format_dt_display(naive_deadline)}"
+
+    # Nếu vẫn chưa có nhãn thời gian (do lỗi parse hoặc lấy toàn bộ)
+    if not time_label:
+        time_label = "Toàn bộ thời gian"
+
+    # Tổng số lượt khảo sát thỏa điều kiện lọc
+    total_surveys = survey_submissions.count()
+
+    # Tính toán điểm và phân loại nhóm Thu mình (A+B+C)
+    annotated_subs = survey_submissions.annotate(
+        score_abc=F('submission__score_a') + F('submission__score_b') + F('submission__score_c')
+    )
+
+    # Lọc nhóm Thu mình Cao (Mức 3 & 4 từ 37 điểm trở lên)
+    high_withdrawal_subs = annotated_subs.filter(score_abc__gte=37)
+    high_withdrawal_count = high_withdrawal_subs.count()
+
+    # Trong nhóm Thu mình Cao, phân tách theo Nhu cầu Kết nối Cao (Mức 3 & 4 của D, score_d >= 13)
+    high_connection_in_high_withdrawal = high_withdrawal_subs.filter(submission__score_d__gte=13).count()
+    low_connection_in_high_withdrawal = high_withdrawal_count - high_connection_in_high_withdrawal
+
+    # Tính tỷ lệ phần trăm chính xác dựa trên dữ liệu thực tế đã lọc
+    cross_high_pct = round((high_connection_in_high_withdrawal / high_withdrawal_count) * 100, 1) if high_withdrawal_count > 0 else 0.0
+    cross_low_pct = round((low_connection_in_high_withdrawal / high_withdrawal_count) * 100, 1) if high_withdrawal_count > 0 else 0.0
+
+    context = {
+        'survey': survey,
+        'total_surveys': total_surveys,
+        'high_withdrawal_count': high_withdrawal_count,
+        'cross_high_pct': cross_high_pct,
+        'cross_low_pct': cross_low_pct,
+        'filter_type': filter_type or '',
+        'start_date': start_date_str or '',
+        'end_date': end_date_str or '',
+        'time_label': time_label,  # Truyền trực tiếp chuỗi nhãn thời gian đã được format chuẩn
+    }
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({
+            "status": "success",
+            **context
+        })
+
+    return render(request, "surveys/reconnect360/cross_analysis.html", context)
+#
+def reconnect360_demographics_view(
+    request,
+    slug="khao-sat-xu-huong-thu-minh-va-muc-do-ket-noi-xa-hoi-o-hoc-sinh-thcs-thpt-1",
+):
+    # Lấy chính xác bài khảo sát theo slug
+    survey = Survey.objects.filter(slug=slug, is_active=True).first()
+    if not survey:
+        survey = Survey.objects.filter(is_active=True).first()
+
+    # Kiểm tra nếu là AJAX request thì trả về JSON data cho biểu đồ & bảng
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        data = _get_reconnect360_report_demographics_data(survey, request)
+        return JsonResponse(data)
+
+    return render(
+        request, 
+        "surveys/reconnect360/demographics.html", 
+        {"survey": survey}
+    )
+
+
+def _get_time_filtered_queryset(queryset, request, date_field="submitted_at"):
+    """Hàm phụ trợ giúp lọc queryset theo khoảng thời gian chuẩn xác."""
+    time_filter = request.GET.get("time_filter", "current_year")
+    now = timezone.now()
+    prefix = f"{date_field}__" if date_field else ""
+
+    if time_filter == "today":
+        return queryset.filter(**{f"{prefix}date": now.date()})
+    elif time_filter == "this_week":
+        start_of_week = (now - datetime.timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        return queryset.filter(**{f"{prefix}gte": start_of_week})
+    elif time_filter == "1_month":
+        return queryset.filter(**{f"{prefix}gte": now - datetime.timedelta(days=30)})
+    elif time_filter == "3_months":
+        return queryset.filter(**{f"{prefix}gte": now - datetime.timedelta(days=90)})
+    elif time_filter == "6_months":
+        return queryset.filter(**{f"{prefix}gte": now - datetime.timedelta(days=180)})
+    elif time_filter == "1_year":
+        return queryset.filter(**{f"{prefix}gte": now - datetime.timedelta(days=365)})
+    elif time_filter == "last_year":
+        return queryset.filter(**{f"{prefix}year": now.year - 1})
+    elif time_filter == "current_year":
+        return queryset.filter(**{f"{prefix}year": now.year})
+    elif time_filter == "custom_year":
+        year_from = request.GET.get("year_from")
+        year_to = request.GET.get("year_to")
+        filters = {}
+        if year_from and year_from.isdigit():
+            filters[f"{prefix}year__gte"] = int(year_from)
+        if year_to and year_to.isdigit():
+            filters[f"{prefix}year__lte"] = int(year_to)
+        if filters:
+            return queryset.filter(**filters)
+    elif time_filter == "custom_date":
+        date_from = request.GET.get("date_from")
+        date_to = request.GET.get("date_to")
+        filters = {}
+        if date_from:
+            filters[f"{prefix}date__gte"] = date_from
+        if date_to:
+            filters[f"{prefix}date__lte"] = date_to
+        if filters:
+            return queryset.filter(**filters)
+            
+    return queryset
+
+def _get_reconnect360_report_demographics_data(survey, request):
+    if not survey:
+        return {
+            "status": "error",
+            "message": "Không tìm thấy khảo sát!",
+            "total_participants": 0,
+            "total_surveys": 0,
+            "total_completed": 0,
+            "completion_rate": 0,
+            "group_abc": {"chart_data": {"labels": [], "series": []}, "table_data": []},
+            "group_d": {"chart_data": {"labels": [], "series": []}, "table_data": []},
+        }
+
+    grade_filter = request.GET.get("grade")
+    gender_filter = request.GET.get("gender")
+
+    # --- 1. Constants ID chuẩn theo cấu trúc DB ---
+    GENDER_QUESTION_ID = 23
+    GRADE_QUESTION_ID = 22
+
+    MALE_ID = 110
+    FEMALE_ID = 111
+    OTHER_IDS = [112, 113]  # Gộp Khác (112) và Không muốn trả lời (113)
+
+    GENDER_MAP = {
+        "male": 110,
+        "female": 111,
+        "other": [112, 113],
+        "no_answer": [112, 113],
+    }
+
+    GRADE_MAP = {
+        "6": [106],
+        "7": [107],
+        "8": [108],
+        "9": [109],
+        "10": [156],
+        "11": [157],
+        "12": [158],
+        "thcs": [106, 107, 108, 109],
+        "thpt": [156, 157, 158],
+    }
+
+    # 2. Lọc SurveySubmission theo khảo sát và thời gian
+    survey_submissions = SurveySubmission.objects.filter(survey=survey).select_related('submission')
+    survey_submissions = _get_time_filtered_queryset(survey_submissions, request, date_field="submission__submitted_at")
+
+    # 3. Lọc nâng cao theo Giới tính & Cấp/Khối bằng ID
+    if gender_filter in GENDER_MAP:
+        opt_val = GENDER_MAP[gender_filter]
+        if isinstance(opt_val, list):
+            survey_submissions = survey_submissions.filter(
+                submission__answers__question_id=GENDER_QUESTION_ID,
+                submission__answers__selected_option_id__in=opt_val
+            )
+        else:
+            survey_submissions = survey_submissions.filter(
+                submission__answers__question_id=GENDER_QUESTION_ID,
+                submission__answers__selected_option_id=opt_val
+            )
+
+    if grade_filter in GRADE_MAP:
+        opt_ids = GRADE_MAP[grade_filter]
+        survey_submissions = survey_submissions.filter(
+            submission__answers__question_id=GRADE_QUESTION_ID,
+            submission__answers__selected_option_id__in=opt_ids
+        )
+
+    survey_submissions = survey_submissions.distinct()
+    total_surveys = survey_submissions.count()
+
+    # 4. Thống kê số lượng người tham gia độc lập
+    submissions_qs = Submission.objects.filter(survey_results__survey=survey).distinct()
+    submissions_qs = _get_time_filtered_queryset(submissions_qs, request, date_field="submitted_at")
+
+    if gender_filter in GENDER_MAP:
+        opt_val = GENDER_MAP[gender_filter]
+        if isinstance(opt_val, list):
+            submissions_qs = submissions_qs.filter(
+                answers__question_id=GENDER_QUESTION_ID,
+                answers__selected_option_id__in=opt_val
+            )
+        else:
+            submissions_qs = submissions_qs.filter(
+                answers__question_id=GENDER_QUESTION_ID,
+                answers__selected_option_id=opt_val
+            )
+
+    if grade_filter in GRADE_MAP:
+        submissions_qs = submissions_qs.filter(
+            answers__question_id=GRADE_QUESTION_ID,
+            answers__selected_option_id__in=GRADE_MAP[grade_filter]
+        )
+
+    submissions_qs = submissions_qs.distinct()
+
+    users_count = submissions_qs.filter(user__isnull=False).values("user").distinct().count()
+    
+    has_lead = hasattr(Submission, 'lead')
+    leads_count = submissions_qs.filter(user__isnull=True, lead__isnull=False).values("lead").distinct().count() if has_lead else 0
+    
+    guests_filter = Q(user__isnull=True, session_key__isnull=False)
+    if has_lead:
+        guests_filter &= Q(lead__isnull=True)
+    sessions_count = submissions_qs.filter(guests_filter).values("session_key").distinct().count()
+
+    total_participants = users_count + leads_count + sessions_count
+
+    # 5. Xử lý thống kê nhóm ABC
+    thresholds_abc = SurveyResultThreshold.objects.filter(
+        survey=survey, group__code__iexact='all_abc'
+    ).order_by("min_score")
+
+    labels_abc, series_abc, table_abc = [], [], []
+    for t in thresholds_abc:
+        sub_abc = survey_submissions.annotate(
+            score_abc=F('submission__score_a') + F('submission__score_b') + F('submission__score_c')
+        ).filter(
+            score_abc__gte=t.min_score, score_abc__lte=t.max_score
+        )
+
+        count = sub_abc.count()
+
+        # Thống kê Nam (110)
+        count_male = sub_abc.filter(
+            submission__answers__question_id=GENDER_QUESTION_ID,
+            submission__answers__selected_option_id=MALE_ID
+        ).count()
+
+        # Thống kê Nữ (111)
+        count_female = sub_abc.filter(
+            submission__answers__question_id=GENDER_QUESTION_ID,
+            submission__answers__selected_option_id=FEMALE_ID
+        ).count()
+
+        # Thống kê Khác / Không trả lời (112 + 113)
+        count_other = sub_abc.filter(
+            submission__answers__question_id=GENDER_QUESTION_ID,
+            submission__answers__selected_option_id__in=OTHER_IDS
+        ).count()
+
+        pct = f"{round((count / total_surveys) * 100, 1)}%" if total_surveys > 0 else "0.0%"
+        pct_male = f"{round((count_male / count) * 100, 1)}%" if count > 0 else "0.0%"
+        pct_female = f"{round((count_female / count) * 100, 1)}%" if count > 0 else "0.0%"
+        pct_other = f"{round((count_other / count) * 100, 1)}%" if count > 0 else "0.0%"
+
+        labels_abc.append(t.title)
+        series_abc.append(count)
+        table_abc.append({
+            "title": t.title,
+            "score_range": f"{t.min_score} – {t.max_score} điểm",
+            "count": count,
+            "percentage": pct,
+            "male_count": count_male,
+            "male_percentage": pct_male,
+            "female_count": count_female,
+            "female_percentage": pct_female,
+            "other_count": count_other,
+            "other_percentage": pct_other,
+            "description": getattr(t, 'description', ''),
+            "recommendation": getattr(t, 'recommendation', ''),
+        })
+
+    # 6. Xử lý thống kê nhóm D
+    thresholds_d = SurveyResultThreshold.objects.filter(
+        survey=survey, group__code__iexact='D'
+    ).order_by("min_score")
+
+    labels_d, series_d, table_d = [], [], []
+    for t in thresholds_d:
+        sub_d = survey_submissions.filter(
+            submission__score_d__gte=t.min_score,
+            submission__score_d__lte=t.max_score
+        )
+
+        count = sub_d.count()
+
+        # Thống kê Nam (110)
+        count_male = sub_d.filter(
+            submission__answers__question_id=GENDER_QUESTION_ID,
+            submission__answers__selected_option_id=MALE_ID
+        ).count()
+
+        # Thống kê Nữ (111)
+        count_female = sub_d.filter(
+            submission__answers__question_id=GENDER_QUESTION_ID,
+            submission__answers__selected_option_id=FEMALE_ID
+        ).count()
+
+        # Thống kê Khác / Không trả lời (112 + 113)
+        count_other = sub_d.filter(
+            submission__answers__question_id=GENDER_QUESTION_ID,
+            submission__answers__selected_option_id__in=OTHER_IDS
+        ).count()
+
+        pct = f"{round((count / total_surveys) * 100, 1)}%" if total_surveys > 0 else "0.0%"
+        pct_male = f"{round((count_male / count) * 100, 1)}%" if count > 0 else "0.0%"
+        pct_female = f"{round((count_female / count) * 100, 1)}%" if count > 0 else "0.0%"
+        pct_other = f"{round((count_other / count) * 100, 1)}%" if count > 0 else "0.0%"
+
+        labels_d.append(t.title)
+        series_d.append(count)
+        table_d.append({
+            "title": t.title,
+            "score_range": f"{t.min_score} – {t.max_score} điểm",
+            "count": count,
+            "percentage": pct,
+            "male_count": count_male,
+            "male_percentage": pct_male,
+            "female_count": count_female,
+            "female_percentage": pct_female,
+            "other_count": count_other,
+            "other_percentage": pct_other,
+            "description": getattr(t, 'description', ''),
+            "recommendation": getattr(t, 'recommendation', ''),
+        })
+
+    return {
+        "status": "success",
+        "total_participants": total_participants,
+        "total_surveys": total_surveys,
+        "total_completed": total_surveys,
+        "completion_rate": 100 if total_surveys > 0 else 0,
+        "group_abc": {
+            "chart_data": {"labels": labels_abc, "series": series_abc},
+            "table_data": table_abc,
+        },
+        "group_d": {
+            "chart_data": {"labels": labels_d, "series": series_d},
+            "table_data": table_d,
+        },
+    }
+
+
+
+# Impot thêm các models của bạn (User, Survey, Submission, SurveySubmission, v.v.)
+
+def reconnect360_repeat_users_view(
+    request,
+    slug="khao-sat-xu-huong-thu-minh-va-muc-do-ket-noi-xa-hoi-o-hoc-sinh-thcs-thpt-1",
+):
+    """View hiển thị trang thống kê học sinh làm bài khảo sát từ 2 lần trở lên."""
+    survey = Survey.objects.filter(slug=slug, is_active=True).first()
+    if not survey:
+        survey = Survey.objects.filter(is_active=True).first()
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        data = _get_repeat_users_report_data(survey, request)
+        return JsonResponse(data)
+
+    return render(
+        request, 
+        "surveys/reconnect360/repeat_users.html", 
+        {"survey": survey}
+    )
+
+def _get_repeat_users_report_data(survey, request):
+    if not survey:
+        return {"status": "error", "message": "Không tìm thấy khảo sát!", "users": [], "total_repeat_users": 0}
+
+    grade_filter = request.GET.get("grade")
+    gender_filter = request.GET.get("gender")
+
+    GENDER_QUESTION_ID = 23
+    GRADE_QUESTION_ID = 22
+
+    GENDER_MAP = {"male": 110, "female": 111, "other": [112, 113], "no_answer": [112, 113]}
+    GRADE_MAP = {
+        "6": [106], "7": [107], "8": [108], "9": [109],
+        "10": [156], "11": [157], "12": [158],
+        "thcs": [106, 107, 108, 109], "thpt": [156, 157, 158]
+    }
+
+    submissions_qs = Submission.objects.filter(survey_results__survey=survey).distinct()
+    submissions_qs = _get_time_filtered_queryset(submissions_qs, request, date_field="submitted_at")
+
+    if gender_filter in GENDER_MAP:
+        opt_val = GENDER_MAP[gender_filter]
+        if isinstance(opt_val, list):
+            submissions_qs = submissions_qs.filter(answers__question_id=GENDER_QUESTION_ID, answers__selected_option_id__in=opt_val)
+        else:
+            submissions_qs = submissions_qs.filter(answers__question_id=GENDER_QUESTION_ID, answers__selected_option_id=opt_val)
+
+    if grade_filter in GRADE_MAP:
+        submissions_qs = submissions_qs.filter(answers__question_id=GRADE_QUESTION_ID, answers__selected_option_id__in=GRADE_MAP[grade_filter])
+
+    submissions_qs = submissions_qs.distinct()
+
+    # Tìm User làm bài từ 2 lần trở lên
+    user_counts = (
+        submissions_qs.filter(user__isnull=False)
+        .values("user")
+        .annotate(total_attempts=Count("id"))
+        .filter(total_attempts__gte=2)
+    )
+
+    repeat_user_ids = [item["user"] for item in user_counts]
+    report_list = []
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    users = User.objects.filter(id__in=repeat_user_ids)
+
+    for user_obj in users:
+        user_submissions = submissions_qs.filter(user=user_obj).order_by("submitted_at")
+        first_sub = user_submissions.first()
+        latest_sub = user_submissions.last()
+
+        if not first_sub or not latest_sub:
+            continue
+
+        # --- KIỂM TRA ĐIỀU KIỆN: Lần 1 và Lần 2 cách nhau hơn 7 ngày ---
+        time_difference = latest_sub.submitted_at - first_sub.submitted_at
+       # if time_difference <= timedelta(days=7):
+           # continue  # Bỏ qua nếu cách nhau <= 7 ngày
+
+        first_abc = (first_sub.score_a or 0) + (first_sub.score_b or 0) + (first_sub.score_c or 0)
+        latest_abc = (latest_sub.score_a or 0) + (latest_sub.score_b or 0) + (latest_sub.score_c or 0)
+        diff_abc = latest_abc - first_abc
+
+        first_d = first_sub.score_d or 0
+        latest_d = latest_sub.score_d or 0
+        diff_d = latest_d - first_d
+
+        gender_ans = latest_sub.answers.filter(question_id=GENDER_QUESTION_ID).first()
+        gender_text = gender_ans.selected_option.text if gender_ans and gender_ans.selected_option else "—"
+
+        grade_ans = latest_sub.answers.filter(question_id=GRADE_QUESTION_ID).first()
+        grade_text = grade_ans.selected_option.text if grade_ans and grade_ans.selected_option else "—"
+
+        user_display_name = (
+            f"{user_obj.last_name} {user_obj.first_name}".strip()
+            or getattr(user_obj, 'full_name', '')
+            or user_obj.username
+        )
+
+        report_list.append({
+            "user_id": user_obj.id,
+            "full_name": user_display_name,
+            "email": user_obj.email or "—",
+            "gender": gender_text,
+            "grade": grade_text,
+            "first_date": first_sub.submitted_at.strftime("%d/%m/%Y %H:%M"),
+            "latest_date": latest_sub.submitted_at.strftime("%d/%m/%Y %H:%M"),
+            "days_diff": time_difference.days,  # Số ngày chênh lệch giữa 2 lần
+            "first_abc": first_abc,
+            "latest_abc": latest_abc,
+            "diff_abc": diff_abc,
+            "first_d": first_d,
+            "latest_d": latest_d,
+            "diff_d": diff_d,
+            "first_scores": {
+                "abc": first_abc,
+                "d": first_d,
+            },
+            "latest_scores": {
+                "abc": latest_abc,
+                "d": latest_d,
+            }
+        })
+
+    # Hàm phụ tách số lớp từ chuỗi (ví dụ: "Lớp 6" -> 6)
+    def extract_grade_number(grade_str):
+        import re
+        match = re.search(r'\d+', grade_str)
+        return int(match.group()) if match else 0
+
+    # Sắp xếp theo thứ tự: Khối lớp tăng dần (6 -> 12), nếu cùng khối thì sắp xếp theo họ tên
+    report_list.sort(key=lambda x: (extract_grade_number(x["grade"]), x["full_name"]))
+
+    return {
+        "status": "success",
+        "total_repeat_users": len(report_list),
+        "users": report_list,
+    }
 #

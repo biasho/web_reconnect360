@@ -1,0 +1,19 @@
+{% extends "admin/index.html" %}
+
+{% block content %}
+<div style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px;">
+     <a href="https://reconnect360.vn/surveys/report/cross-analysis/" target="_blank" style="padding: 8px 14px; background: #d39e00; color: #fff; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 13px;">
+        📈 Phân Tích Chéo
+    </a>
+   
+    <a href="https://reconnect360.vn/surveys/report/repeat-users/" target="_blank" style="padding: 8px 14px; background: #218838; color: #fff; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 13px;">
+        👥 Báo Cáo Người Dùng Lặp Lại
+    </a>
+     <a href="/surveys/4/statistics/" target="_blank" style="padding: 8px 14px; background: #417690; color: #fff; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 13px;">
+        📊 Thống Kê Khảo Sát
+    </a>
+   
+</div>
+
+{{ block.super }}
+{% endblock %}

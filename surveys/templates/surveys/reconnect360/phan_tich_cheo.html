@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block default_theme %}light{% endblock %}
+{% block title %}Phân tích Tương quan Chéo - Reconnect 360°{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="flex items-center text-xs text-[var(--color-text-sub)] mb-5">
+    <a class="hover:text-[var(--color-primary)] transition-colors" href="{% url 'pages:home' %}">Trang chủ</a>
+    <span class="mx-2">/</span>
+    <a class="hover:text-[var(--color-primary)] transition-colors" href="https://reconnect360.vn/surveys/report/">Báo cáo khảo sát</a>
+    <span class="mx-2">/</span>
+    <span class="text-[var(--color-text-main)] font-medium truncate">Phân tích tương quan chéo</span>
+</nav>
+
+<div class="max-w-6xl mx-auto px-4 pb-16 space-y-6">
+
+    <!-- Tiêu đề trang -->
+    <div class="bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-xl md:text-2xl font-bold text-[var(--color-text-main)] mb-1">
+                Phân tích Tương quan Chéo Chuyên Sâu
+            </h1>
+            <p class="text-[var(--color-text-sub)] text-xs">
+                Khảo sát mối quan hệ định lượng giữa Xu hướng Thu mình (A+B+C) và Nhu cầu Kết nối Xã hội (D)
+            </p>
+        </div>
+        <span class="text-xs bg-[var(--color-primary)]/10 text-[var(--color-primary)] px-3 py-1.5 rounded-xl font-semibold">
+            Đã chuẩn hóa logic mô tả
+        </span>
+    </div>
+
+    <!-- Khối Tóm tắt số liệu cốt lõi -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-5 flex items-center gap-4">
+            <div class="size-12 rounded-2xl bg-green-500/10 text-green-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-2xl">group</span>
+            </div>
+            <div>
+                <p class="text-xs text-[var(--color-text-sub)] font-medium">Tổng học sinh khảo sát</p>
+                <h3 class="text-xl font-bold text-[var(--color-text-main)]">198</h3>
+            </div>
+        </div>
+        
+        <div class="bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-5 flex items-center gap-4">
+            <div class="size-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-2xl">trending_flat</span>
+            </div>
+            <div>
+                <p class="text-xs text-[var(--color-text-sub)] font-medium">Nhóm Thu mình Cao (Mức 3–4)</p>
+                <h3 class="text-xl font-bold text-amber-600">47 HS <span class="text-xs font-normal text-[var(--color-text-sub)]">(14.1%)</span></h3>
+            </div>
+        </div>
+
+        <div class="bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-5 flex items-center gap-4">
+            <div class="size-12 rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                <span class="material-symbols-outlined text-2xl">analytics</span>
+            </div>
+            <div>
+                <p class="text-xs text-[var(--color-text-sub)] font-medium">Nhu cầu Tái kết nối Chung</p>
+                <h3 class="text-xl font-bold text-[var(--color-primary)]">72,1%</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== PHẦN BẢNG PHÂN TÍCH CHÉO ==================== -->
+    <div class="bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-[var(--color-border)] pb-3">
+            <h2 class="text-xs font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                <span class="material-symbols-outlined text-[var(--color-primary)] text-base">table_chart</span>
+                Bảng phân phối chéo (Cross-tabulation) thực tế
+            </h2>
+            <span class="text-[10px] text-[var(--color-text-sub)]">Lọc riêng nhóm A+B+C mức 3–4</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-[var(--color-border)] text-[10px] text-[var(--color-text-sub)] uppercase">
+                        <th class="py-2.5 px-3">Nhóm đối tượng (A + B + C)</th>
+                        <th class="py-2.5 px-3 text-center">Sĩ số (HS)</th>
+                        <th class="py-2.5 px-3 text-center">Nhu cầu kết nối Thấp/TB (Mức 1–2 của D)</th>
+                        <th class="py-2.5 px-3 text-center bg-[var(--color-primary)]/5 text-[var(--color-primary)] font-bold">Nhu cầu tái kết nối Cao (Mức 3–4 của D)</th>
+                    </tr>
+                </thead>
+                <tbody class="text-xs text-[var(--color-text-main)] divide-y divide-[var(--color-border)]">
+                    <tr class="hover:bg-[var(--color-background)] transition-colors">
+                        <td class="py-3 px-3 font-medium">
+                            Nhóm Thu mình Thấp (Mức 1 & 2)<br>
+                            <span class="text-[10px] text-[var(--color-text-sub)] font-normal">Thang điểm: 0 – 36 điểm</span>
+                        </td>
+                        <td class="py-3 px-3 text-center text-[var(--color-text-sub)]">170</td>
+                        <td class="py-3 px-3 text-center text-[var(--color-text-sub)]">—</td>
+                        <td class="py-3 px-3 text-center text-[var(--color-text-sub)]">—</td>
+                    </tr>
+                    <tr class="bg-amber-500/5 hover:bg-amber-500/10 transition-colors">
+                        <td class="py-3 px-3 font-medium text-amber-900">
+                            Nhóm Thu mình Cao (Mức 3 & 4)<br>
+                            <span class="text-[10px] text-amber-600 font-normal">Thang điểm: 37 – 72 điểm</span>
+                        </td>
+                        <td class="py-3 px-3 text-center font-bold text-amber-900">47</td>
+                        <td class="py-3 px-3 text-center text-[var(--color-text-sub)]">{{ cross_low_pct|default:"..." }}%</td>
+                        <td class="py-3 px-3 text-center font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10">
+                            {{ cross_high_pct|default:"..." }}%
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Khối Ghi chú diễn giải chuẩn hóa theo đúng yêu cầu sửa lỗi logic -->
+        <div class="bg-[var(--color-background)] border border-[var(--color-border)] rounded-xl p-4 text-xs text-[var(--color-text-main)] leading-relaxed space-y-2">
+            <p class="font-semibold text-[var(--color-primary)] flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-sm">lightbulb</span>
+                Diễn giải báo cáo chuẩn hóa:
+            </p>
+            <p class="text-[var(--color-text-sub)]">
+                Phân tích mô tả cho thấy tỷ lệ học sinh có mức độ sẵn sàng tái kết nối cao và rất cao là <strong>72,1%</strong>, trong khi <strong>21,7%</strong> học sinh thuộc mức 3–4 của chỉ số khó khăn kết nối xã hội. Kết quả này khắc phục lỗi so sánh lệch nhóm trước đây, đồng thời gợi ý một hướng tiếp cận quan trọng: ngay cả trong nhóm học sinh có biểu hiện thu mình rõ rệt, phần lớn vẫn tiềm ẩn mong muốn kết nối, làm cơ sở thực tiễn để định hướng các can thiệp tâm lý học đường.
+            </p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

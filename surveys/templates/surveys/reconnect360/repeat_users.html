@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block default_theme %}light{% endblock %}
+{% block title %}Thống kê Học sinh làm lại Khảo sát - Reconnect 360°{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav class="flex items-center text-xs text-[var(--color-text-sub)] mb-5">
+    <a class="hover:text-[var(--color-primary)] transition-colors" href="{% url 'pages:home' %}">Trang chủ</a>
+    <span class="mx-2">/</span>
+    <span class="text-[var(--color-text-main)] font-medium truncate">Thống kê học sinh làm lại (>= 2 lần)</span>
+</nav>
+
+<div class="max-w-7xl mx-auto px-4 pb-16 space-y-6">
+
+    <!-- Header & Thống kê tổng quan -->
+    <div class="bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-6 flex flex-col gap-5">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold text-[var(--color-text-main)] mb-1">
+                    Thống kê Học sinh làm bài ≥ 2 Lần
+                </h1>
+                <p class="text-[var(--color-text-sub)] text-xs">
+                    So sánh điểm số chỉ số Thu mình & Kết nối xã hội trực tiếp giữa Lần 1 và Lần 2 (Lần gần nhất).
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3 bg-[var(--color-primary)]/10 text-[var(--color-primary)] px-4 py-2.5 rounded-2xl shrink-0">
+                <span class="material-symbols-outlined text-2xl">repeat</span>
+                <div>
+                    <p class="text-[10px] font-medium uppercase tracking-wider">Tổng học sinh làm lại</p>
+                    <h3 id="stat-total-repeat" class="text-lg font-bold">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chú thích màu biểu đồ -->
+        <div class="flex flex-wrap items-center gap-6 pt-3 border-t border-[var(--color-border)] text-xs font-semibold">
+            <span class="text-[var(--color-text-sub)]">Chú thích biểu đồ:</span>
+            <div class="flex items-center gap-2">
+                <span class="size-3 rounded-sm" style="background-color: #94a3b8 !important;"></span>
+                <span class="text-[var(--color-text-main)]">Lần 1</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="size-3 rounded-sm bg-[var(--color-primary)]"></span>
+                <span class="text-[var(--color-text-main)]">Lần 2</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bảng chi tiết -->
+    <div class="bg-[var(--color-card-bg)] rounded-2xl shadow-sm ring-1 ring-[var(--color-border)] p-5 space-y-4">
+        <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold text-[var(--color-text-main)] flex items-center gap-2">
+                <span class="material-symbols-outlined text-[var(--color-primary)] text-base">bar_chart</span>
+                Danh sách Học sinh & Biểu đồ So sánh Lần 1 vs Lần 2
+            </h2>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="border-b border-[var(--color-border)] text-[10px] text-[var(--color-text-sub)] uppercase">
+                        <th class="py-2.5 px-3 min-w-[160px]">Học sinh</th>
+                        <th class="py-2.5 px-3 text-center">Khối / Giới tính</th>
+                        <th class="py-2.5 px-3 text-center min-w-[140px]">Thời gian làm bài</th>
+                        <th class="py-2.5 px-3 text-center min-w-[130px]">Thu mình (A+B+C)</th>
+                        <th class="py-2.5 px-3 text-center min-w-[130px]">Kết nối (D)</th>
+                        <th class="py-2.5 px-3 text-center min-w-[210px]">Biểu đồ So sánh (Lần 1 vs Lần 2)</th>
+                    </tr>
+                </thead>
+                <tbody id="repeat-users-tbody" class="text-xs divide-y divide-[var(--color-border)]"></tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- Script Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    let chartInstances = {};
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchRepeatUserData();
+    });
+
+    function fetchRepeatUserData() {
+        fetch(window.location.pathname, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            renderRepeatUsersUI(data);
+        })
+        .catch(err => console.error('Fetch error:', err));
+    }
+
+    function renderRepeatUsersUI(data) {
+        const tbody = document.getElementById('repeat-users-tbody');
+        document.getElementById('stat-total-repeat').innerText = Number(data.total_repeat_users || 0).toLocaleString();
+
+        if (!tbody) return;
+        
+        Object.keys(chartInstances).forEach(id => {
+            if (chartInstances[id]) chartInstances[id].destroy();
+        });
+        chartInstances = {};
+
+        tbody.innerHTML = '';
+
+        if (!data.users || data.users.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-[var(--color-text-sub)]">Chưa có học sinh nào làm khảo sát từ 2 lần trở lên.</td></tr>`;
+            return;
+        }
+
+        data.users.forEach((user, index) => {
+            let abcBadge = user.diff_abc < 0 
+                ? `<span class="text-emerald-600 font-bold flex items-center justify-center gap-0.5"><span class="material-symbols-outlined text-sm">trending_down</span> ${user.diff_abc}</span>`
+                : (user.diff_abc > 0 
+                    ? `<span class="text-rose-600 font-bold flex items-center justify-center gap-0.5"><span class="material-symbols-outlined text-sm">trending_up</span> +${user.diff_abc}</span>`
+                    : `<span class="text-[var(--color-text-sub)]">0</span>`);
+
+            let dBadge = user.diff_d > 0 
+                ? `<span class="text-emerald-600 font-bold flex items-center justify-center gap-0.5"><span class="material-symbols-outlined text-sm">trending_up</span> +${user.diff_d}</span>`
+                : (user.diff_d < 0 
+                    ? `<span class="text-rose-600 font-bold flex items-center justify-center gap-0.5"><span class="material-symbols-outlined text-sm">trending_down</span> ${user.diff_d}</span>`
+                    : `<span class="text-[var(--color-text-sub)]">0</span>`);
+
+            const canvasId = `inlineChart_${user.user_id}_${index}`;
+
+            const row = `
+                <tr class="hover:bg-[var(--color-background)] transition-colors">
+                    <td class="py-3 px-3">
+                        <div class="font-bold text-[var(--color-text-main)]">${user.full_name}</div>
+                        <div class="hidden text-[10px] text-[var(--color-text-sub)] truncate max-w-[150px]">${user.email}</div>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <div class="font-medium">${user.grade}</div>
+                        <div class="text-[10px] text-[var(--color-text-sub)]">${user.gender}</div>
+                    </td>
+                    <td class="py-3 px-3 text-center text-[11px]">
+                        <div class="text-[var(--color-text-sub)]">Lần 1: ${user.first_date}</div>
+                        <div class="font-medium text-[var(--color-text-main)]">Lần 2: ${user.latest_date}</div>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-slate-500">${user.first_abc}pt</span>
+                            <span class="text-[var(--color-border)]">→</span>
+                            <span class="font-bold text-[var(--color-text-main)]">${user.latest_abc}pt</span>
+                        </div>
+                        <div class="text-[10px] mt-0.5">${abcBadge}</div>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <span class="text-slate-500">${user.first_d}pt</span>
+                            <span class="text-[var(--color-border)]">→</span>
+                            <span class="font-bold text-[var(--color-text-main)]">${user.latest_d}pt</span>
+                        </div>
+                        <div class="text-[10px] mt-0.5">${dBadge}</div>
+                    </td>
+                    <td class="py-2 px-3 text-center align-middle">
+                        <div class="relative w-[190px] h-[70px] mx-auto">
+                            <canvas id="${canvasId}"></canvas>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+
+            requestAnimationFrame(() => {
+                renderInlineBarChart(canvasId, user);
+            });
+        });
+    }
+
+    function renderInlineBarChart(canvasId, user) {
+        const canvasElement = document.getElementById(canvasId);
+        if (!canvasElement) return;
+
+        const ctx = canvasElement.getContext('2d');
+        const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--color-primary').trim() || '#10b981';
+
+        chartInstances[canvasId] = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Thu mình', 'Kết nối'],
+                datasets: [
+                    {
+                        label: 'Lần 1',
+                        data: [
+                            user.first_scores ? user.first_scores.abc : user.first_abc, 
+                            user.first_scores ? user.first_scores.d : user.first_d
+                        ],
+                        backgroundColor: '#94a3b8',
+                        borderRadius: 3,
+                        barPercentage: 0.65,
+                        categoryPercentage: 0.7
+                    },
+                    {
+                        label: 'Lần 2',
+                        data: [
+                            user.latest_scores ? user.latest_scores.abc : user.latest_abc, 
+                            user.latest_scores ? user.latest_scores.d : user.latest_d
+                        ],
+                        backgroundColor: primaryColor,
+                        borderRadius: 3,
+                        barPercentage: 0.65,
+                        categoryPercentage: 0.7
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        enabled: true,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ${context.raw} pt`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 9 }, color: '#64748b' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        display: false,
+                        grid: { display: false }
+                    }
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

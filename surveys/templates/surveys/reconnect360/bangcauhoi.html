@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BẢNG KHẢO SÁT MỨC ĐỘ KẾT NỐI XÃ HỘI Ở HỌC SINH THCS-THPT</title>
+    <style>
+        :root {
+            --primary-color: #1e88e5;
+            --primary-dark: #1565c0;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            color: var(--primary-dark);
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-style: italic;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 30px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label.question-title {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .options-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-left: 10px;
+        }
+
+        .options-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .text-input-inline {
+            border: none;
+            border-bottom: 1px solid #777;
+            outline: none;
+            padding: 2px 5px;
+            font-size: 14px;
+            width: 250px;
+        }
+
+        /* Styling cho bảng khảo sát */
+        .survey-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .survey-table th, .survey-table td {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            text-align: center;
+        }
+
+        .survey-table th {
+            background-color: #f0f4f8;
+            color: #333;
+        }
+
+        .survey-table td.statement {
+            text-align: left;
+        }
+
+        .group-header {
+            background-color: #e3f2fd;
+            font-weight: bold;
+            text-align: left !important;
+            color: var(--primary-dark);
+            padding: 8px 10px !important;
+        }
+
+        /* Responsive cho bảng trên mobile */
+        @media (max-width: 768px) {
+            .survey-table th, .survey-table td {
+                padding: 6px 4px;
+                font-size: 12px;
+            }
+            .text-input-inline {
+                width: 100%;
+            }
+        }
+
+        .btn-submit {
+            display: block;
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background 0.3s;
+        }
+
+        .btn-submit:hover {
+            background-color: var(--primary-dark);
+        }
+
+        /* Result Section */
+        #result-section {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            border: 2px solid var(--primary-color);
+            border-radius: 8px;
+            background-color: #eef7ff;
+        }
+
+        #result-section h3 {
+            margin-top: 0;
+            color: var(--primary-dark);
+        }
+
+        .disclaimer {
+            font-size: 13px;
+            color: #666;
+            font-style: italic;
+            margin-top: 15px;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>BẢNG KHẢO SÁT MỨC ĐỘ KẾT NỐI XÃ HỘI Ở HỌC SINH THCS-THPT</h1>
+    <div class="subtitle">Khảo sát xu hướng thu mình và mức độ kết nối xã hội ở học sinh THCS</div>
+
+    <form id="surveyForm">
+        <!-- PHẦN I -->
+        <div class="section-title">I. PHẦN I - THÔNG TIN CHUNG VỀ ĐỐI TƯỢNG THAM GIA KHẢO SÁT</div>
+
+        <div class="form-group">
+            <label class="question-title">1. Hiện tại, em đang học lớp:</label>
+            <div class="options-group">
+                <label><input type="radio" name="lop" value="Lớp 6" required> Lớp 6</label>
+                <label><input type="radio" name="lop" value="Lớp 7"> Lớp 7</label>
+                <label><input type="radio" name="lop" value="Lớp 8"> Lớp 8</label>
+                <label><input type="radio" name="lop" value="Lớp 9"> Lớp 9</label>
+                <label><input type="radio" name="lop" value="Lớp 10"> Lớp 10</label>
+                <label><input type="radio" name="lop" value="Lớp 11"> Lớp 11</label>
+                <label><input type="radio" name="lop" value="Lớp 12"> Lớp 12</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="question-title">2. Giới tính của em:</label>
+            <div class="options-group">
+                <label><input type="radio" name="gioitinh" value="Nam" required> Nam</label>
+                <label><input type="radio" name="gioitinh" value="Nữ"> Nữ</label>
+                <label><input type="radio" name="gioitinh" value="Khác"> Khác</label>
+                <label><input type="radio" name="gioitinh" value="Không muốn trả lời"> Không muốn trả lời</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="question-title">3. Hiện tại, em thường sống cùng:</label>
+            <div class="options-group">
+                <label><input type="radio" name="songcung" value="Bố và/hoặc mẹ" required> Bố và/hoặc mẹ</label>
+                <label><input type="radio" name="songcung" value="Ông và/hoặc bà"> Ông và/hoặc bà</label>
+                <label><input type="radio" name="songcung" value="Người thân khác"> Người thân khác</label>
+                <label><input type="radio" name="songcung" value="Khác"> Khác: <input type="text" class="text-input-inline" id="songcung_khac"></label>
+                <label><input type="radio" name="songcung" value="Không muốn trả lời"> Không muốn trả lời</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="question-title">4. Thời gian trung bình em thường sử dụng mạng xã hội mỗi ngày:</label>
+            <div class="options-group">
+                <label><input type="radio" name="mxh_thoigian" value="Dưới 1h" required> Dưới 1h</label>
+                <label><input type="radio" name="mxh_thoigian" value="Từ 1-2h"> Từ 1-2h</label>
+                <label><input type="radio" name="mxh_thoigian" value="Từ 2-4h"> Từ 2-4h</label>
+                <label><input type="radio" name="mxh_thoigian" value="Từ 4-6h"> Từ 4-6h</label>
+                <label><input type="radio" name="mxh_thoigian" value="Trên 6h"> Trên 6h</label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="question-title">5. Mục đích sử dụng mạng xã hội chủ yếu của em là gì?</label>
+            <div class="options-group">
+                <label><input type="checkbox" name="mxh_mucdich" value="Giải trí"> Giải trí</label>
+                <label><input type="checkbox" name="mxh_mucdich" value="Trò chuyện/ kết nối bạn bè"> Trò chuyện/ kết nối bạn bè</label>
+                <label><input type="checkbox" name="mxh_mucdich" value="Học tập"> Học tập</label>
+                <label><input type="checkbox" name="mxh_mucdich" value="Theo dõi nội dung / sở thích"> Theo dõi nội dung / sở thích</label>
+                <label><input type="checkbox" name="mxh_mucdich" value="Khác"> Khác: <input type="text" class="text-input-inline" id="mucdich_khac"></label>
+            </div>
+        </div>
+
+        <!-- PHẦN II -->
+        <div class="section-title">II. PHẦN II - THỰC HIỆN KHẢO SÁT</div>
+        <p><em>Trong 6 tháng gần đây, nhận định nào dưới đây mô tả mức độ đúng về em như thế nào?</em></p>
+
+        <table class="survey-table">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">STT</th>
+                    <th style="width: 45%;">Nhận định</th>
+                    <th style="width: 10%;">Không bao giờ<br>(0đ)</th>
+                    <th style="width: 10%;">Hiếm khi<br>(1đ)</th>
+                    <th style="width: 10%;">Thỉnh thoảng<br>(2đ)</th>
+                    <th style="width: 10%;">Thường xuyên<br>(3đ)</th>
+                    <th style="width: 10%;">Gần như luôn luôn<br>(4đ)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Nhóm A -->
+                <tr><td colspan="7" class="group-header">Nhóm A – Không gian cá nhân và xu hướng thu mình</td></tr>
+                <script>
+                    const groupA = [
+                        "Em muốn ở một mình thay vì tham gia các hoạt động chung.",
+                        "Em dành phần lớn thời gian rảnh ở nhà và ít muốn tham gia các hoạt động bên ngoài",
+                        "Em tránh những hoạt động tập thể ở trường.",
+                        "Em cảm thấy thoải mái hơn khi ở một mình so với khi ở cùng người khác",
+                        "Em ít tham gia những hoạt động chung hoặc hoạt động xã hội mà trước đây từng tham gia.",
+                        "Em chọn ở một mình ngay cả khi có cơ hội gặp gỡ bạn bè"
+                    ];
+                    groupA.forEach((q, i) => {
+                        let idx = i + 1;
+                        document.write(`
+                            <tr>
+                                <td>${idx}</td>
+                                <td class="statement">${q}</td>
+                                ${[0,1,2,3,4].map(v => `<td><input type="radio" name="q${idx}" value="${v}" required></td>`).join('')}
+                            </tr>
+                        `);
+                    });
+                </script>
+
+                <!-- Nhóm B -->
+                <tr><td colspan="7" class="group-header">Nhóm B – Khó khăn trong giao tiếp xã hội</td></tr>
+                <script>
+                    const groupB = [
+                        "Em khó chủ động bắt chuyện hoặc duy trì cuộc trò chuyện với bạn bè",
+                        "Em cảm thấy khó bắt chuyện hoặc duy trì cuộc trò chuyện với người em chưa quen",
+                        "Em tránh giao tiếp trực tiếp với bạn bè",
+                        "Khi có bạn bè hoặc khách đến nhà, em muốn ở một nơi riêng thay vì tham gia cùng mọi người.",
+                        "Em cảm thấy khó hòa nhập với các bạn cùng trang lứa",
+                        "Em cảm thấy không thoải mái khi tham gia một nhóm đông người"
+                    ];
+                    groupB.forEach((q, i) => {
+                        let idx = i + 7;
+                        document.write(`
+                            <tr>
+                                <td>${idx}</td>
+                                <td class="statement">${q}</td>
+                                ${[0,1,2,3,4].map(v => `<td><input type="radio" name="q${idx}" value="${v}" required></td>`).join('')}
+                            </tr>
+                        `);
+                    });
+                </script>
+
+                <!-- Nhóm C -->
+                <tr><td colspan="7" class="group-header">Nhóm C – Cảm nhận về sự gắn kết và hỗ trợ xã hội</td></tr>
+                <script>
+                    const groupC = [
+                        "Khi gặp chuyện khó khăn, em cảm thấy khó tìm người để chia sẻ.",
+                        "Em cảm thấy những người xung quanh khó hiểu được mình.",
+                        "Em ngại tìm kiếm sự giúp đỡ khi gặp vấn đề",
+                        "Em cảm thấy mình có ít người để trò chuyện , chia sẻ",
+                        "Em giữ những điều khiến mình lo lắng cho riêng mình",
+                        "Em thấy ít gắn kết với những người xung quanh"
+                    ];
+                    groupC.forEach((q, i) => {
+                        let idx = i + 13;
+                        document.write(`
+                            <tr>
+                                <td>${idx}</td>
+                                <td class="statement">${q}</td>
+                                ${[0,1,2,3,4].map(v => `<td><input type="radio" name="q${idx}" value="${v}" required></td>`).join('')}
+                            </tr>
+                        `);
+                    });
+                </script>
+
+                <!-- Nhóm D -->
+                <tr><td colspan="7" class="group-header">Nhóm D – Mong muốn tái kết nối</td></tr>
+                <script>
+                    const groupD = [
+                        "Em muốn có thêm cơ hội trò chuyện với bạn bè.",
+                        "Em muốn có một người mà mình có thể tin tưởng để chia sẻ.",
+                        "Em muốn tham gia nhiều hơn vào các hoạt động cùng bạn bè.",
+                        "Nếu cảm thấy an toàn và được tôn trọng, em sẵn sàng thử kết nối với mọi người.",
+                        "Em muốn tìm cách cải thiện mối quan hệ của mình với bạn bè hoặc gia đình",
+                        "Em muốn nhận sự hỗ trợ để cảm thấy thoải mái hơn khi giao tiếp với người khác"
+                    ];
+                    groupD.forEach((q, i) => {
+                        let idx = i + 19;
+                        document.write(`
+                            <tr>
+                                <td>${idx}</td>
+                                <td class="statement">${q}</td>
+                                ${[0,1,2,3,4].map(v => `<td><input type="radio" name="q${idx}" value="${v}" required></td>`).join('')}
+                            </tr>
+                        `);
+                    });
+                </script>
+            </tbody>
+        </table>
+
+        <!-- PHẦN III -->
+        <div class="section-title">PHẦN III: CÂU HỎI HỖ TRỢ</div>
+        <div class="form-group">
+            <label class="question-title">Nếu muốn cải thiện việc kết nối với mọi người, em mong muốn hình thức hỗ trợ nào?</label>
+            <div class="options-group">
+                <label><input type="checkbox" name="ho_tro" value="Có thêm cơ hội làm việc nhóm với bạn bè"> Có thêm cơ hội làm việc nhóm với bạn bè</label>
+                <label><input type="checkbox" name="ho_tro" value="Có một người bạn/anh chị mà em cảm thấy an toàn để trò chuyện"> Có một người bạn/anh chị mà em cảm thấy an toàn để trò chuyện</label>
+                <label><input type="checkbox" name="ho_tro" value="Được giáo viên quan tâm và hỗ trợ"> Được giáo viên quan tâm và hỗ trợ</label>
+                <label><input type="checkbox" name="ho_tro" value="Có thể trò chuyện với chuyên viên tư vấn học đường"> Có thể trò chuyện với chuyên viên tư vấn học đường</label>
+                <label><input type="checkbox" name="ho_tro" value="Tham gia câu lạc bộ hoặc hoạt động phù hợp với sở thích"> Tham gia câu lạc bộ hoặc hoạt động phù hợp với sở thích</label>
+                <label><input type="checkbox" name="ho_tro" value="Có các hoạt động giúp em luyện kỹ năng giao tiếp"> Có các hoạt động giúp em luyện kỹ năng giao tiếp</label>
+                <label><input type="checkbox" name="ho_tro" value="Có tài liệu/hướng dẫn tự tìm hiểu về cảm xúc và kết nối xã hội"> Có tài liệu/hướng dẫn tự tìm hiểu về cảm xúc và kết nối xã hội</label>
+            </div>
+        </div>
+
+        <button type="button" class="btn-submit" onclick="calculateResults()">NỘP PHIẾU KHẢO SÁT & XEM KẾT QUẢ</button>
+    </form>
+
+    <!-- HIỂN THỊ KẾT QUẢ -->
+    <div id="result-section">
+        <h3>KẾT QUẢ KHẢO SÁT CỦA EM</h3>
+        <p><strong>1. Chỉ số khó khăn trong kết nối xã hội (Nhóm A + B + C):</strong> <span id="score-abc" style="color:red; font-weight:bold;">0</span>/72 điểm</p>
+        <p><strong>Mức độ kết nối xã hội hiện tại:</strong> <span id="level-desc" style="font-weight:bold;"></span></p>
+        
+        <p style="margin-top: 15px;"><strong>2. Chỉ số mong muốn/sẵn sàng tái kết nối (Nhóm D):</strong> <span id="score-d" style="color:green; font-weight:bold;">0</span>/24 điểm</p>
+        <p><em>(Điểm càng cao thể hiện mức độ mong muốn và sẵn sàng tái kết nối của em càng lớn)</em></p>
+
+        <div class="disclaimer">
+            <strong>Lưu ý:</strong> Kết quả này không phải là chẩn đoán y khoa. Bảng khảo sát chỉ giúp em tự nhìn nhận một số thay đổi trong cách kết nối với gia đình, bạn bè và môi trường xung quanh.
+        </div>
+    </div>
+</div>
+
+<script>
+    function calculateResults() {
+        const form = document.getElementById('surveyForm');
+        
+        // Kiểm tra validation cho các câu hỏi phần II
+        for (let i = 1; i <= 24; i++) {
+            const answered = form.querySelector(`input[name="q${i}"]:checked`);
+            if (!answered) {
+                alert(`Vui lòng trả lời đầy đủ tất cả câu hỏi trong Phần II! (Chưa chọn câu ${i})`);
+                return;
+            }
+        }
+
+        // Tính điểm nhóm A + B + C (Câu 1 đến 18)
+        let scoreABC = 0;
+        for (let i = 1; i <= 18; i++) {
+            scoreABC += parseInt(form.querySelector(`input[name="q${i}"]:checked`).value);
+        }
+
+        // Tính điểm nhóm D (Câu 19 đến 24)
+        let scoreD = 0;
+        for (let i = 19; i <= 24; i++) {
+            scoreD += parseInt(form.querySelector(`input[name="q${i}"]:checked`).value);
+        }
+
+        // Xử lý diễn giải mức độ cho ABC
+        let levelText = "";
+        if (scoreABC <= 18) {
+            levelText = "Mức 1: Kết nối xã hội tương đối tốt. Các câu trả lời cho thấy em hiện vẫn duy trì được nhiều hình thức kết nối với người xung quanh.";
+        } else if (scoreABC <= 36) {
+            levelText = "Mức 2: Có một số khía cạnh kết nối cần chú ý. Em có một số dấu hiệu cho thấy việc giao tiếp hoặc tham gia hoạt động xã hội đôi khi chưa thật sự thoải mái.";
+        } else if (scoreABC <= 54) {
+            levelText = "Mức 3: Đang có xu hướng thu hẹp kết nối xã hội. Em đang dành nhiều thời gian một mình hoặc gặp khó khăn trong việc duy trì kết nối.";
+        } else {
+            levelText = "Mức 4: Nên cân nhắc tìm kiếm sự hỗ trợ. Em gặp khá nhiều khó khăn trong việc kết nối với người xung quanh.";
+        }
+
+        // Hiển thị kết quả
+        document.getElementById('score-abc').innerText = scoreABC;
+        document.getElementById('score-d').innerText = scoreD;
+        document.getElementById('level-desc').innerText = levelText;
+
+        const resultDiv = document.getElementById('result-section');
+        resultDiv.style.display = 'block';
+        resultDiv.scrollIntoView({ behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
