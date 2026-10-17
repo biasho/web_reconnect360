@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.db import close_old_connections, transaction
 from django.db.models import F, Prefetch, Q,Avg, Count,OuterRef,Subquery
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -1452,8 +1452,6 @@ def _get_repeat_users_report_data(survey, request):
 
         # --- KIỂM TRA ĐIỀU KIỆN: Lần 1 và Lần 2 cách nhau hơn 7 ngày ---
         time_difference = latest_sub.submitted_at - first_sub.submitted_at
-       # if time_difference <= timedelta(days=7):
-           # continue  # Bỏ qua nếu cách nhau <= 7 ngày
 
         first_abc = (first_sub.score_a or 0) + (first_sub.score_b or 0) + (first_sub.score_c or 0)
         latest_abc = (latest_sub.score_a or 0) + (latest_sub.score_b or 0) + (latest_sub.score_c or 0)
@@ -1514,4 +1512,201 @@ def _get_repeat_users_report_data(survey, request):
         "total_repeat_users": len(report_list),
         "users": report_list,
     }
+
+# ==========================================
+# 8. API Thống kê & Biểu đồ riêng cho Modal (Phục vụ nút Thống kê)
+# ==========================================
+
+# ==========================================
+# 8. API Thống kê & Biểu đồ riêng cho Modal (Phục vụ nút Thống kê)
+# ==========================================
+# ==========================================
+# 8. API Thống kê & Biểu đồ riêng cho Modal (Phục vụ nút Thống kê)
+# ==========================================
+
+def submission_stats_detail(request, pk):
+    """API View trả về dữ liệu chi tiết của lượt nộp (Submission) để render vào Modal."""
+    try:
+        # 1. Phân quyền và truy vấn Submission
+        if request.user.is_staff or request.user.is_superuser:
+            query = Q(pk=pk)
+        else:
+            query = Q(pk=pk) & (Q(user=request.user) | Q(lead__user=request.user))
+
+        submission = Submission.objects.select_related('survey', 'composite_survey') \
+                              .prefetch_related(
+                                  'survey_results__survey',
+                                  'composite_survey__items__survey',
+                                  'answers__question',
+                                  'answers__selected_option'
+                              ).filter(query).first()
+        
+        if not submission:
+            return JsonResponse({'error': 'Không tìm thấy lượt nộp hoặc bạn không có quyền truy cập.'}, status=404)
+        
+        composite = submission.composite_survey
+        surveys_data = []
+        total_score = submission.total_score or 0
+
+        # Lấy điểm số các nhóm
+        score_a = getattr(submission, 'score_a', 0) or 0
+        score_b = getattr(submission, 'score_b', 0) or 0
+        score_c = getattr(submission, 'score_c', 0) or 0
+        score_d = getattr(submission, 'score_d', 0) or 0
+        score_abc = score_a + score_b + score_c
+
+        # 2. Xử lý thông tin khảo sát
+        if composite:
+            title = composite.title
+            items_map = {
+                item.survey_id: (item.name or item.survey.title)
+                for item in composite.items.all()
+            }
+            results = submission.survey_results.all()
+            if results.exists():
+                for res in results:
+                    s_title = items_map.get(res.survey_id, res.survey.title if res.survey else "Khảo sát thành phần")
+                    surveys_data.append({
+                        'survey_id': res.survey_id,
+                        'survey_title': s_title,
+                        'score': res.score if res.score is not None else 0,
+                    })
+            else:
+                surveys_data.append({
+                    'survey_id': composite.id,
+                    'survey_title': title,
+                    'score': total_score,
+                })
+        elif submission.survey:
+            title = submission.survey.title
+            surveys_data.append({
+                'survey_id': submission.survey.id,
+                'survey_title': title,
+                'score': total_score,
+            })
+        else:
+            title = "Không xác định"
+            surveys_data.append({
+                'survey_id': None,
+                'survey_title': title,
+                'score': total_score,
+            })
+
+        # 3. Lấy Ngưỡng điểm và danh sách Threshold (Chuẩn hóa chính xác 100% giống survey_result_view)
+        threshold_abc = None
+        threshold_d = None
+        all_thresholds_abc = []
+        all_thresholds_d = []
+
+        survey_items_list = []
+        if composite:
+            survey_items_list = list(composite.items.select_related('survey').all())
+        elif submission.survey:
+            class DummyItem:
+                def __init__(self, s):
+                    self.survey = s
+            survey_items_list = [DummyItem(submission.survey)]
+
+        for item in survey_items_list:
+            s_obj = item.survey
+
+            if not threshold_abc:
+                t_abc = SurveyResultThreshold.objects.filter(
+                    survey=s_obj,
+                    min_score__lte=score_abc,
+                    max_score__gte=score_abc,
+                    group__code__iexact='all_abc',
+                ).first()
+                if t_abc:
+                    threshold_abc = t_abc
+                    all_thresholds_abc = list(
+                        SurveyResultThreshold.objects.filter(
+                            survey=s_obj, group__code__iexact='all_abc'
+                        ).order_by('min_score')
+                    )
+
+            if not threshold_d:
+                t_d = SurveyResultThreshold.objects.filter(
+                    survey=s_obj,
+                    min_score__lte=score_d,
+                    max_score__gte=score_d,
+                    group__code__iexact='D',
+                ).first()
+                if t_d:
+                    threshold_d = t_d
+                    all_thresholds_d = list(
+                        SurveyResultThreshold.objects.filter(
+                            survey=s_obj, group__code__iexact='D'
+                        ).order_by('min_score')
+                    )
+
+            if threshold_abc and threshold_d:
+                break
+
+        # 4. Chuẩn hóa dữ liệu JSON cho Chart.js
+        chart_abc_json = {
+            'labels': [f"{t.title} ({t.min_score}-{t.max_score}đ)" for t in all_thresholds_abc],
+            'max_scores': [t.max_score for t in all_thresholds_abc],
+            'user_score': score_abc,
+        } if all_thresholds_abc else {'labels': [], 'max_scores': [], 'user_score': score_abc}
+
+        chart_d_json = {
+            'labels': [f"{t.title} ({t.min_score}-{t.max_score}đ)" for t in all_thresholds_d],
+            'max_scores': [t.max_score for t in all_thresholds_d],
+            'user_score': score_d,
+        } if all_thresholds_d else {'labels': [], 'max_scores': [], 'user_score': score_d}
+
+        # 5. Chi tiết câu hỏi và câu trả lời của user
+        stats_data = []
+        questions_map = {}
+        for ans in submission.answers.all():
+            q_id = ans.question_id
+            if q_id not in questions_map:
+                questions_map[q_id] = {
+                    'question_text': ans.question.text,
+                    'choices': [],
+                    'texts': [],
+                }
+            if ans.selected_option:
+                questions_map[q_id]['choices'].append({
+                    'text': ans.selected_option.text,
+                    'score': getattr(ans.selected_option, 'score', 0)
+                })
+            if ans.text_answer and ans.text_answer.strip():
+                questions_map[q_id]['texts'].append(ans.text_answer.strip())
+
+        for q_id, q_data in questions_map.items():
+            stats_data.append({
+                'question_text': q_data['question_text'],
+                'choices': q_data['choices'],
+                'text_answers': q_data['texts']
+            })
+
+        # 6. Trả về payload JSON hoàn chỉnh cho Modal
+        # 6. Trả về payload JSON hoàn chỉnh cho Modal
+        return JsonResponse({
+            'success': True,
+            'title': title,
+            'submitted_at': submission.submitted_at.strftime('%d/%m/%Y %H:%M') if getattr(submission, 'submitted_at', None) else '',
+            'total_score': total_score,
+            'score_abc': score_abc,
+            'score_d': score_d,
+            'threshold_abc': {
+                'title': threshold_abc.title if threshold_abc else 'Chưa xác định',
+                'description': threshold_abc.description if threshold_abc else '',
+                'recommendation': threshold_abc.recommendation if threshold_abc else '',
+            } if threshold_abc else None,
+            'threshold_d': {
+                'title': threshold_d.title if threshold_d else 'Chưa xác định',
+                'description': threshold_d.description if threshold_d else '',
+                'recommendation': threshold_d.recommendation if threshold_d else '',
+            } if threshold_d else None,
+            'chart_abc_json': chart_abc_json,
+            'chart_d_json': chart_d_json,
+            'stats_data': stats_data
+        })
+    except Exception as e:
+        print(f"❌ LỖI SUBMISSION_STATS_DETAIL: {str(e)}")
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
 #

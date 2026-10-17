@@ -33,11 +33,15 @@
             <td class="py-3.5 px-2 text-center font-semibold text-gray-800 dark:text-slate-200">
               {{ item.total_score }}đ
             </td>
-            <td class="py-3.5 px-2 text-right">
-  <button onclick="openDetailModal({{ item.id }})" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer">
-    Chi tiết
+            <td class="py-3.5 px-2 text-right space-x-3">
+             <button  onclick="openStatsModal('{{ item.id }}')" class="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-medium cursor-pointer inline-flex items-center gap-1">
+  <span class="material-symbols-outlined text-sm">Xem nhận xét</span>
   </button>
-</td>
+              <!-- Nút Chi tiết cũ -->
+              <button onclick="openDetailModal({{ item.id }})" class="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium cursor-pointer align-middle">
+                Chi tiết
+              </button>
+            </td>
           </tr>
         {% endfor %}
       </tbody>
@@ -54,7 +58,7 @@
       <div class="flex items-center gap-1">
         <!-- Nút Trang trước -->
         {% if page_obj.has_previous %}
-          <button onclick="loadSubmissions({{ page_obj.previous_page_number }})" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+          <button onclick="loadSubmissions({{ page_obj.previous_page_number }})" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
             Trước
           </button>
         {% else %}
@@ -70,7 +74,7 @@
               {{ i }}
             </span>
           {% else %}
-            <button onclick="loadSubmissions({{ i }})" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+            <button onclick="loadSubmissions({{ i }})" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
               {{ i }}
             </button>
           {% endif %}
@@ -78,7 +82,7 @@
 
         <!-- Nút Trang sau -->
         {% if page_obj.has_next %}
-          <button onclick="loadSubmissions({{ page_obj.next_page_number }})" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors">
+          <button onclick="loadSubmissions({{ page_obj.next_page_number }})" class="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors cursor-pointer">
             Sau
           </button>
         {% else %}
@@ -89,6 +93,9 @@
       </div>
     </div>
   {% endif %}
+
+  <!-- Nhúng Modal Thống kê tách riêng -->
+  {% include 'users/partials/_submission_chart_modal.html' %}
 
 {% else %}
   <div class="py-8 text-center text-sm text-gray-500 dark:text-slate-400">

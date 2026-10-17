@@ -244,4 +244,5 @@ def submission_detail(request, pk):
         print(f"❌ LỖI SUBMISSION_DETAIL: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
+
 #

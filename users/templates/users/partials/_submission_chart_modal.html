@@ -1,0 +1,268 @@
+<!-- Modal Thống kê & Biểu đồ Lượt nộp -->
+<div id="statsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs hidden opacity-0 transition-opacity duration-300">
+  <div class="bg-white dark:bg-slate-800 w-full max-w-4xl max-h-[90vh] flex flex-col rounded-2xl shadow-xl border border-gray-100 dark:border-slate-700 transform scale-95 transition-transform duration-300 m-4">
+    
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-slate-700 shrink-0">
+      <div>
+        <h3 class="text-base font-bold text-gray-800 dark:text-slate-200 flex items-center gap-2">
+          <i data-lucide="bar-chart-3" class="w-5 h-5 text-blue-600"></i>
+          Chi tiết kết quả khảo sát
+        </h3>
+        <p id="modal-submission-meta" class="text-xs text-gray-400 dark:text-slate-400 mt-0.5">Thời gian nộp: --</p>
+      </div>
+      <button onclick="closeStatsModal()" class="size-8 rounded-full bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-500 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors cursor-pointer">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Modal Body (Có thanh cuộn) -->
+    <div class="p-6 overflow-y-auto space-y-6 flex-1">
+      
+      <!-- PHẦN 1: TỔNG QUAN ĐIỂM -->
+      <div class="bg-blue-50/50 dark:bg-slate-900/40 p-4 rounded-xl border border-blue-100 dark:border-slate-700/60 flex items-center justify-between">
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400">Kết quả đánh giá tổng hợp</h4>
+          <p class="text-sm font-semibold text-gray-800 dark:text-slate-200 mt-1" id="modal-survey-title">Đang tải tên bài khảo sát...</p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-bold text-gray-500 uppercase">Tổng điểm toàn bài</span>
+          <div class="text-xl font-extrabold text-blue-600 dark:text-blue-400"><span id="modal-total-score">0</span> điểm</div>
+        </div>
+      </div>
+
+      <!-- PHẦN 2: BIỂU ĐỒ PHÂN MỨC & NHẬN XÉT 2 NHÓM -->
+      <div class="space-y-6">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-slate-400">Phân mức chi tiết theo nhóm</h4>
+        
+        <!-- Nhóm 1: Xu hướng thu mình (ABC) -->
+        <div class="bg-gray-50 dark:bg-slate-900/50 rounded-xl p-5 border border-gray-100 dark:border-slate-700/60 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <h5 class="text-xs font-bold text-gray-800 dark:text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="brain" class="w-4 h-4 text-blue-600"></i>
+              Phân mức: Nhóm A + B + C (Xu hướng thu mình)
+            </h5>
+            <span class="text-xs text-gray-500 dark:text-slate-400">Điểm: <strong id="modal-score-abc" class="text-blue-600 font-bold">0 điểm</strong></span>
+          </div>
+          
+          <div class="relative w-full max-w-xl mx-auto h-56">
+            <canvas id="modalChartAbc"></canvas>
+          </div>
+
+          <!-- Thông tin Ngưỡng / Nhận xét / Lời khuyên cho Nhóm ABC -->
+          <div id="modal-threshold-abc-box" class="space-y-1.5 pt-3 border-t border-gray-200 dark:border-slate-700/60 text-xs text-gray-600 dark:text-slate-300">
+            <!-- Render qua JS -->
+          </div>
+        </div>
+
+        <!-- Nhóm 2: Mức độ kết nối xã hội (D) -->
+        <div class="bg-gray-50 dark:bg-slate-900/50 rounded-xl p-5 border border-gray-100 dark:border-slate-700/60 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <h5 class="text-xs font-bold text-gray-800 dark:text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="network" class="w-4 h-4 text-emerald-600"></i>
+              Phân mức: Nhóm D (Mức độ kết nối xã hội)
+            </h5>
+            <span class="text-xs text-gray-500 dark:text-slate-400">Điểm: <strong id="modal-score-d" class="text-emerald-600 font-bold">0 điểm</strong></span>
+          </div>
+          
+          <div class="relative w-full max-w-xl mx-auto h-56">
+            <canvas id="modalChartD"></canvas>
+          </div>
+
+          <!-- Thông tin Ngưỡng / Nhận xét / Lời khuyên cho Nhóm D -->
+          <div id="modal-threshold-d-box" class="space-y-1.5 pt-3 border-t border-gray-200 dark:border-slate-700/60 text-xs text-gray-600 dark:text-slate-300">
+            <!-- Render qua JS -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Modal Footer -->
+    <div class="flex justify-end px-6 py-3 border-t border-gray-100 dark:border-slate-700 shrink-0 bg-gray-50 dark:bg-slate-800/50 rounded-b-2xl">
+      <button onclick="closeStatsModal()" class="px-4 py-2 rounded-xl bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-slate-200 text-xs font-medium hover:bg-gray-300 dark:hover:bg-slate-600 transition-colors cursor-pointer">
+        Đóng
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Chart.js & Script xử lý Modal -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  let modalChartAbcInstance = null;
+  let modalChartDInstance = null;
+
+  function openStatsModal(submissionId) {
+    const modal = document.getElementById('statsModal');
+    if (!modal) return;
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+      modal.classList.remove('opacity-0');
+      modal.querySelector('div.transform').classList.remove('scale-95');
+      modal.querySelector('div.transform').classList.add('scale-100');
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }, 10);
+
+    document.getElementById('modal-submission-meta').innerText = 'Thời gian nộp: Đang tải...';
+    document.getElementById('modal-survey-title').innerText = 'Đang tải thông tin...';
+    document.getElementById('modal-total-score').innerText = '0';
+    document.getElementById('modal-score-abc').innerText = '0 điểm';
+    document.getElementById('modal-score-d').innerText = '0 điểm';
+    document.getElementById('modal-threshold-abc-box').innerHTML = '<span class="italic text-gray-400">Đang cập nhật...</span>';
+    document.getElementById('modal-threshold-d-box').innerHTML = '<span class="italic text-gray-400">Đang cập nhật...</span>';
+
+    // Gọi API lấy dữ liệu chi tiết theo submission_id
+    const statsUrl = `/surveys/submissions/stats/${submissionId}/`;
+
+    fetch(statsUrl, {
+      method: 'GET',
+      credentials: 'same-origin', 
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(res => {
+      if (!res.ok) throw new Error(`Lỗi HTTP: ${res.status}`);
+      return res.json();
+    })
+    .then(data => {
+      if (data.success) {
+        renderSubmissionModalData(data);
+      } else {
+        alert(data.error || 'Không thể tải dữ liệu thống kê.');
+        closeStatsModal();
+      }
+    })
+    .catch(err => {
+      console.error('Lỗi tải thống kê:', err);
+      document.getElementById('modal-submission-meta').innerText = `Lỗi tải dữ liệu: ${err.message}`;
+    });
+  }
+
+  function closeStatsModal() {
+    const modal = document.getElementById('statsModal');
+    if (!modal) return;
+
+    modal.classList.add('opacity-0');
+    modal.querySelector('div.transform').classList.remove('scale-100');
+    modal.querySelector('div.transform').classList.add('scale-95');
+    setTimeout(() => {
+      modal.classList.add('hidden');
+    }, 300);
+  }
+
+  function renderSubmissionModalData(data) {
+    document.getElementById('modal-submission-meta').innerText = `Thời gian nộp: ${data.submitted_at || '--'}`;
+    document.getElementById('modal-survey-title').innerText = data.title || 'Khảo sát';
+    document.getElementById('modal-total-score').innerText = data.total_score || 0;
+
+    const scoreAbc = data.score_abc || 0;
+    const scoreD = data.score_d || 0;
+
+    document.getElementById('modal-score-abc').innerText = `${scoreAbc} điểm`;
+    document.getElementById('modal-score-d').innerText = `${scoreD} điểm`;
+
+    // 1. Render Thông tin Ngưỡng (Threshold), Nhận xét & Lời khuyên
+    renderThresholdBox('modal-threshold-abc-box', data.threshold_abc);
+    renderThresholdBox('modal-threshold-d-box', data.threshold_d);
+
+    // 2. Render Biểu đồ so sánh chuẩn từ dữ liệu `chart_abc_json` và `chart_d_json` của Backend
+    renderThresholdComparisonChart('modalChartAbc', data.chart_abc_json, '#1152D4');
+    renderThresholdComparisonChart('modalChartD', data.chart_d_json, '#10B981');
+  }
+
+  function renderThresholdBox(containerId, thresholdObj) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!thresholdObj || !thresholdObj.title) {
+      container.innerHTML = '<span class="italic text-gray-400">Không có dữ liệu ngưỡng điểm phù hợp.</span>';
+      return;
+    }
+
+    container.innerHTML = `
+      <p class="font-semibold text-gray-800 dark:text-slate-200">
+        Mức độ: <span class="text-blue-600 dark:text-blue-400">${thresholdObj.title}</span>
+      </p>
+      ${thresholdObj.description ? `<p class="text-gray-600 dark:text-slate-400"><strong>Nhận xét:</strong> ${thresholdObj.description}</p>` : ''}
+      ${thresholdObj.recommendation ? `<p class="text-emerald-600 dark:text-emerald-400 font-medium"><strong>Lời khuyên:</strong> ${thresholdObj.recommendation}</p>` : ''}
+    `;
+  }
+
+  function renderThresholdComparisonChart(canvasId, chartJson, barColor) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+
+    const isDark = document.documentElement.classList.contains('dark');
+
+    if (canvasId === 'modalChartAbc' && modalChartAbcInstance) modalChartAbcInstance.destroy();
+    if (canvasId === 'modalChartD' && modalChartDInstance) modalChartDInstance.destroy();
+
+    const labels = chartJson && chartJson.labels ? chartJson.labels : [];
+    const maxScores = chartJson && chartJson.max_scores ? chartJson.max_scores : [];
+    const userScore = chartJson && chartJson.user_score !== undefined ? chartJson.user_score : 0;
+
+    // Tạo mảng điểm học sinh trùng với số lượng nhãn mốc để vẽ đường so sánh
+    const userScoreArray = new Array(labels.length).fill(userScore);
+
+    const chartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Ngưỡng điểm chuẩn các mức',
+            data: maxScores,
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(100, 116, 139, 0.08)',
+            borderColor: isDark ? '#334155' : '#E5E7EB',
+            borderWidth: 1,
+            borderRadius: 6,
+            barThickness: 28,
+          },
+          {
+            type: 'line',
+            label: 'Điểm thực tế của học sinh',
+            data: userScoreArray,
+            borderColor: barColor,
+            backgroundColor: barColor,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointBackgroundColor: barColor,
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: { font: { size: 10 }, color: '#94a3b8' }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: isDark ? '#f1f5f9' : '#0f172a', font: { weight: 'bold', size: 10 } }
+          },
+          y: {
+            grid: { color: isDark ? '#334155' : '#E5E7EB' },
+            ticks: { color: '#94a3b8', precision: 0 },
+            beginAtZero: true
+          }
+        }
+      }
+    });
+
+    if (canvasId === 'modalChartAbc') modalChartAbcInstance = chartInstance;
+    if (canvasId === 'modalChartD') modalChartDInstance = chartInstance;
+  }
+</script>
